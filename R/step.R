@@ -16,7 +16,7 @@ new_step <- function(parent,
                      ...,
                      class = character()) {
 
-  stopifnot(is.data.table(parent) || is_step(parent))
+  stopifnot(h2o::is.h2o(parent) || is_step(parent))
   stopifnot(is.character(vars))
   stopifnot(is.character(groups))
 

@@ -15,14 +15,6 @@
 #'   `immutable = FALSE` to allow dtplyr to modify the input object.
 #' @param name Optionally, supply a name to be used in generated expressions.
 #'   For expert use only.
-#' @param key_by Set keys for data frame, using [select()] semantics (e.g.
-#'   `key_by = c(key1, key2)`.
-#'
-#'   This uses [data.table::setkey()] to sort the table and build an index.
-#'   This will considerably improve performance for subsets, summaries, and
-#'   joins that use the keys.
-#'
-#'   See `vignette("datatable-keys-fast-subset")` for more details.
 #' @export
 #' @aliases tbl_dt grouped_dt
 #' @examples
@@ -42,24 +34,17 @@
 #' by_cyl %>% summarise(mpg = mean(mpg))
 #' by_cyl %>% mutate(mpg = mean(mpg))
 #' by_cyl %>% filter(mpg < mean(mpg)) %>% summarise(hp = mean(hp))
-lazy_dt <- function(x, name = NULL, immutable = TRUE, key_by = NULL) {
-  if (!is.data.table(x)) {
+lazy_dt <- function(x, name = NULL, immutable = TRUE) {
+  if (!h2o::is.h2o(x)) {
     if (!immutable) {
-      abort("`immutable` must be `TRUE` when `x` is not already a data table.")
+      abort("`immutable` must be `TRUE` when `x` is not already an H2OFrame.")
     }
-    x <- as.data.table(x)
+    tbl_name <- name
+    if(is.null(tbl_name)) tbl_name <- unique_name()
+    x <- Databases::SideloadTable(x, tbl_name = tbl_name, database = "h2o")
     copied <- TRUE
   } else {
     copied <- FALSE
-  }
-
-  key_by <- enquo(key_by)
-  key_vars <- unname(tidyselect::vars_select(names(x), !!key_by))
-  if (length(key_vars)) {
-    if (immutable && !copied) {
-      x <- copy(x)
-    }
-    data.table::setkeyv(x, key_vars)
   }
 
   step_first(x, name = name, immutable = immutable, env = caller_env())
@@ -71,7 +56,7 @@ dim.dtplyr_step_first <- function(x) {
 }
 
 step_first <- function(parent, name = NULL, immutable = TRUE, env = caller_env()) {
-  stopifnot(is.data.table(parent))
+  stopifnot(h2o::is.h2o(parent))
 
   if (is.null(name)) {
     name <- unique_name()
@@ -104,6 +89,6 @@ unique_name <- local({
   i <- 0
   function() {
     i <<- i + 1
-    paste0("_DTH2O", i)
+    paste0("dth2o_", i)
   }
 })
