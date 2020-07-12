@@ -16,3 +16,6 @@
 ^README\.Rmd$
 ^\.github$
 ^LICENSE\.md$
+^Explore\ dtplyr\.R$
+^\.Renviron$
+^\.Rprofile$
