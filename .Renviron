@@ -1,0 +1,4 @@
+#### Renv setup ####
+RENV_PATHS_ROOT=~/R_Projects/renv_root
+RENV_PATHS_CACHE=~/R_Projects/PackageCache
+RENV_PATHS_LOCAL=~/R_Projects/My_R_Package_Sources
