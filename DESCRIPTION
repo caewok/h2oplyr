@@ -22,6 +22,7 @@ Depends:
     R (>= 3.2)
 Imports:
     crayon,
+    h2o,
     data.table (>= 1.9.6),
     dplyr (>= 0.8.1),
     rlang,
