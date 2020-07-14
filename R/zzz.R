@@ -1,5 +1,10 @@
 # nocov start
+# http://r-pkgs.had.co.nz/namespace.html
+
+#' @importFrom conflicted conflict_prefer
 .onLoad <- function(...) {
+  # stopifnot(requireNamespace("h2o")) # need to load first, so dtplyr can override `[<-.H2OFrame` and `[.H2OFrame`
+
   register_s3_method("dplyr", "filter", "data.table")
 
   register_s3_method("dplyr", "filter", "dtplyr_step")
