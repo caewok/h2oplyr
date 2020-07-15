@@ -4,6 +4,7 @@ renv::install("rmarkdown")
 renv::install("knitr")
 renv::install("data.table")
 renv::install("dplyr")
+renv::install("roxygen2")
 
 # Sys.setenv(AUTH_HEADER = "Authorization: Basic caewok:$apr1$ALMkVuFN$f4RXCnMoqFW6P18mgTAbm/")
 
