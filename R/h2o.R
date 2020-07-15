@@ -80,9 +80,20 @@
   if(!missing(row)) {
     # replace all the variable names with data[[name]] and evaluate
     rowsub <- substitute(row)
-    tmp <- subdatanames(rowsub, data_name = "data")
-    row <- rlang::eval_tidy(tmp)
-    data <- h2o:::`[.H2OFrame`(data, row = row, drop = drop)
+    if(class(rowsub[[1]]) == "name" & as.character(rowsub[[1]]) == "order") {
+      stopifnot(length(rowsub) > 1)
+      # translate, e.g., order(mpg, cyl, desc(hp)), into h2o.arrange
+      args <- c(list(x = data),
+                as.list(as.character(rowsub[2:length(rowsub)])))
+      data <- do.call(h2o.arrange, args)
+
+    } else {
+      tmp <- subdatanames(rowsub, data_name = "data")
+      row <- rlang::eval_tidy(tmp)
+      data <- h2o:::`[.H2OFrame`(data, row = row, drop = drop)
+    }
+
+
   }
 
   new_colnames <- NULL
@@ -180,6 +191,59 @@ eval_columns <- function(data, colsub) {
 
 subdatanames <- function(sub, data_name) {
   if(length(sub) == 1) return(sub)
+
+  # check for h2o functions and replace
+  if(class(sub[[1]]) == "name") {
+    sub[[1]] <- as.name(switch(as.character(sub[[1]]),
+                               mean = "h2o.mean",
+                               median = "h2o.median",
+                               abs = "h2o.abs",
+                               acos = "h2o.acos",
+                               all = "h2o.all",
+                               any = "h2o.any",
+                               cor = "h2o.cor",
+                               cos = "h2o.cos",
+                               cosh = "h2o.cosh",
+                               cummax = "h2o.cummax",
+                               cummin = "h2o.cummin",
+                               cumprod = "h2o.cumprod",
+                               cumsum = "h2o.cumsum",
+                               exp = "h2o.exp",
+                               floor = "h2o.floor",
+                               gsub = "h2o.gsub",
+                               ifelse = "h2o.ifelse",
+                               log = "h2o.log",
+                               log10 = "h2o.log10",
+                               log2 = "h2o.log2",
+                               match = "h2o.match",
+                               max = "h2o.max",
+                               mean = "h2o.mean",
+                               median = "h2o.median",
+                               min = "h2o.min",
+                               nchar = "h2o.nchar",
+                               prod = "h2o.prod",
+                               quantile = "h2o.quantile",
+                               range = "h2o.range",
+                               sd = "h2o.sd",
+                               sin = "h2o.sin",
+                               sqrt = "h2o.sqrt",
+                               strsplit = "h2o.strsplit",
+                               sub = "h2o.sub",
+                               substr = "h2o.substr",
+                               substring = "h2o.substring",
+                               tan = "h2o.tan",
+                               tanh = "h2o.tanh",
+                               toupper = "h2o.toupper",
+                               trim = "h2o.trim",
+                               trunc = "h2o.trunc",
+                               unique = "h2o.unique",
+                               var = "h2o.var",
+                               which = "h2o.which",
+                               which.max = "h2o.which_max",
+                               which.min = "h2o.which_min",
+                               as.character(sub[[1]])))
+  }
+
   for(i in 2:length(sub)) { # first is a function name; skip
     if(class(sub[[i]]) == "name") {
       sub[[i]] <- call("[[", as.name(data_name), as.character(sub[[i]]))
@@ -225,7 +289,12 @@ replace_dot_alias = function(e) {
 
 # typical dtplyr transmute
 # `_DT1`[, .(cyl2 = cyl * 2, vs2 = vs * 2)]
-# colsub <- fun_col(.(cyl2 = cyl * 2, vs2 = vs * 2))
+# colsub <- fn_col(.(cyl2 = cyl * 2, vs2 = vs * 2))
+
+# dtplyr summarize
+# mean works; median doesn't
+# Call:   dth2o_2[, .(a = median(mpg))]
+# colsub <- fn_col(.(a = median(mpg)))
 
 # typical DT mutates
 # colsub <- fn_col(cyl := 8)
