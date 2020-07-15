@@ -90,8 +90,10 @@ collect.dtplyr_step <- function(x, ...) {
 #' @rdname collect
 #' @export
 #' @importFrom dplyr compute
-compute.dtplyr_step <- function(x, ...) {
-  out <- lazy_dt(dt_eval(x))
+compute.dtplyr_step <- function(x, name = unique_name(), ...) {
+  tbl.hex <- dt_eval(x)
+  if(h2o::h2o.getId(tbl.hex) != name) tbl.hex <- h2o::h2o.assign(tbl.hex, name)
+  out <- lazy_dt(tbl.hex)
 
   if (length(x$groups) > 0) {
     out <- step_group(out, x$groups)
@@ -134,7 +136,7 @@ pull.dtplyr_step <- function(.data, var = -1) {
 
 #' @export
 print.dtplyr_step <- function(x, ...) {
-  cat_line(crayon::bold("Source: "), "local data table ", dplyr::dim_desc(x))
+  cat_line(crayon::bold("Source: "), "h2o frame ", dplyr::dim_desc(x))
   cat_line(crayon::bold("Call:   "), expr_text(dt_call(x)))
   cat_line()
   cat_line(format(as_tibble(head(x)))[-1]) # Hack to remove "A tibble" line
