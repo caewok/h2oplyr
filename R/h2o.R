@@ -81,7 +81,7 @@
     # replace all the variable names with data[[name]] and evaluate
     rowsub <- substitute(row)
     tmp <- subdatanames(rowsub, data_name = "data")
-    row <- eval(tmp)
+    row <- rlang::eval_tidy(tmp)
     data <- h2o:::`[.H2OFrame`(data, row = row, drop = drop)
   }
 
@@ -114,7 +114,7 @@ eval_columns <- function(data, colsub) {
       if(is.call(colsub[[i]])) {
         # apply the call to the H2OFrame
         col_mod <- subdatanames(colsub[[i]], data_name = "data")
-        col_mod <- eval(col_mod)
+        col_mod <- rlang::eval_tidy(col_mod)
         new_col_name = names(colsub)[[i]]
         if(is.null(new_col_name) || new_col_name == "") {
           new_col_name <- paste0("V", i - 1)
@@ -128,24 +128,69 @@ eval_columns <- function(data, colsub) {
 
     colvars <- as.character(colsub[-1])
     new_colnames <- names(colsub)[-1]
+  } else if(root == ":=") {
+    # internal mutate of columns.
+    # first argument are the column names
+    # second argument is what to apply to the H2OFrame
+    # the returned data set should be the full set with the mutations
+    # arguably, should re-assign to the original name using h2o.assign, but that is probably not necessary
+    # instead, can use compute() for re-assignment
+    if(length(colsub) == 2) {
+      stopifnot(names(colsub)[[2]] != "")
+      colsub[[3]] <- colsub[[2]] # e.g., `:=`(cyl2 = cyl * 2); cyl2 is name
+      colsub[[2]] <- as.name(names(colsub)[[2]])
+    }
+    stopifnot(length(colsub) == 3)
+
+    if(class(colsub[[2]]) == "call") {
+      mutated_col_names <- rlang::eval_tidy(colsub[[2]])
+    } else if(class(colsub[[2]]) == "name") {
+      mutated_col_names <- as.character(colsub[[2]])
+    } else stop("Class for the LHS of ':=' is not recognized.")
+
+    col_mod <- subdatanames(colsub[[3]], data_name = "data")
+    mutated_values <- rlang::eval_tidy(col_mod) # may return a list
+
+    stopifnot(length(mutated_values) == length(mutated_col_names))
+    if(length(mutated_values) > 1) {
+      for(i in seq_along(mutated_values)) {
+        data <- h2o:::`[<-.H2OFrame`(data, col = mutated_col_names[[i]], drop = FALSE, value = mutated_values[[i]])
+      }
+    } else {
+      data <- h2o:::`[<-.H2OFrame`(data, col = mutated_col_names, drop = FALSE, value = mutated_values)
+    }
+
+    colvars <- h2o::colnames(data)
+
+  } else if(root == ":") {
+    colvars <- rlang::eval_tidy(colsub)
+
   } else if(root == "") {
-    colvars <- as.character(colsub)
+    stopifnot(length(colsub) == 1)
+    if(class(colsub) == "name") {
+      colvars <- as.character(colsub)
+    } else {
+      colvars <- rlang::eval_tidy(colsub)
+    }
+
   } else stop("Root not recognized.")
   names(colvars) <- new_colnames
   return(list(data = data, col = colvars))
 }
 
+subdatanames <- function(sub, data_name) {
+  if(length(sub) == 1) return(sub)
+  for(i in 2:length(sub)) { # first is a function name; skip
+    if(class(sub[[i]]) == "name") {
+      sub[[i]] <- call("[[", as.name(data_name), as.character(sub[[i]]))
 
-subdatanames <- function(rowsub, data_name) {
-  for(i in 2:length(rowsub)) { # first is a function name; skip
-    if(class(rowsub[[i]]) == "name") {
-      rowsub[[i]] <- call("[[", as.name(data_name), as.character(rowsub[[i]]))
-
-    } else if(class(rowsub[[i]]) == "call") {
-      rowsub[[i]] <- subdatanames(rowsub[[i]], data_name = data_name)
+    } else if(class(sub[[i]]) == "call") {
+      sub[[i]] <- subdatanames(sub[[i]], data_name = data_name)
+    } else if(class(sub[[i]]) == "<-") {
+      sub[[i]] <- subdatanames(sub[[i]], data_name = data_name)
     }
   }
-  return(rowsub)
+  return(sub)
 }
 
 # from data.table; copied here to avoid importing internal data.table function
@@ -167,3 +212,22 @@ replace_dot_alias = function(e) {
 # }
 #
 # fn_row <- function(var) substitute(var)
+
+# typical dtplyr mutate
+# colsub <- fn_col(`:=`(c("cyl2", "cyl4"), {
+#   cyl2 <- cyl * 2
+#   cyl4 <- cyl2 * 2
+#   .(cyl2, cyl4)
+# }))
+
+# copy(dth2o_2)[, `:=`(cyl2 = cyl * 2)]
+# colsub <- fn_col(`:=`(cyl2 = cyl * 2))
+
+# typical dtplyr transmute
+# `_DT1`[, .(cyl2 = cyl * 2, vs2 = vs * 2)]
+# colsub <- fun_col(.(cyl2 = cyl * 2, vs2 = vs * 2))
+
+# typical DT mutates
+# colsub <- fn_col(cyl := 8)
+# colsub <- fn_col(mpg := mean(mpg))
+# colsub <- fn_col(am := NULL)
