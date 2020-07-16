@@ -58,6 +58,7 @@ rename.dtplyr_step <- function(.data, ...) {
 
 
 #' @importFrom dplyr distinct
+#' @importFrom h2o h2o.unique
 #' @export
 distinct.dtplyr_step <- function(.data, ..., .keep_all = FALSE) {
   dots <- capture_dots(.data, ...)
@@ -87,7 +88,7 @@ distinct.dtplyr_step <- function(.data, ..., .keep_all = FALSE) {
   args <- list()
   args$by <- by
 
-  step_call(.data, "h2o::h2o.unique", args = args)
+  step_call(.data, "h2o.unique", args = args)
 }
 
 
