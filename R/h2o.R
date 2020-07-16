@@ -74,8 +74,23 @@
 
 #' @importFrom rlang as_string ensym
 #' @export
-`[.H2OFrame` <- function(data, row, col, drop = TRUE) {
+`[.H2OFrame` <- function(data, row, col, drop = TRUE, by, keyby) {
   message("In [.H2OFrame")
+
+  column_is_grouped <- FALSE
+  if(!missing(by) && !missing(keyby)) {
+    stop("Only one of 'by' or 'keyby' should be specified")
+  } else if(!missing(by)) {
+    if(missing(col)) stop("Applying a group to an H2O Frame requires specification of an aggregate function for the col variable.")
+    keyby <- dtplyr:::replace_dot_alias(substitute(by))
+    column_is_grouped <- TRUE
+  } else if(!missing(keyby)) {
+    if(missing(col)) stop("Applying a group to an H2O Frame requires specification of an aggregate function for the col variable.")
+    keyby <- dtplyr:::replace_dot_alias(substitute(keyby))
+    column_is_grouped <- TRUE
+  }
+
+
   # data.table evaluates the row filter first. e.g. mtcars.dt[cyl == 4, mean(mpg)]; mtcars.dt[cyl == 8, mean(mpg)]
   if(!missing(row)) {
     # replace all the variable names with data[[name]] and evaluate
@@ -100,17 +115,134 @@
   # based on data.table `[` function
   if(!missing(col)) {
     colsub <- replace_dot_alias(substitute(col))
-    res <- eval_columns(data = data, colsub = colsub)
-    col <- res$col
-    data <- res$data
-    data <- h2o:::`[.H2OFrame`(data, col = col, drop = drop)
+
+    if(column_is_grouped) {
+
+      data <- eval_grouping(data = data, colsub = colsub, keyby = keyby)
+
+    } else {
+      res <- eval_columns(data = data, colsub = colsub)
+      col <- res$col
+      data <- res$data
+      data <- h2o:::`[.H2OFrame`(data, col = col, drop = drop)
+    }
   }
 
   # update column names if passed a named list or named vector
-  if(!is.null(new_colnames)) h2o::colnames(data) <- new_colnames
+  # if(!is.null(new_colnames)) h2o::colnames(data) <- new_colnames
 
   return(data)
 }
+
+#' @importFrom dplyr group_data
+#' @importFrom vctrs new_list_of new_data_frame
+#' @export
+group_data.H2OFrame <- function(.data) {
+  # same as dplyr::group_data.data.frame
+  rows <- vctrs::new_list_of(list(seq_len(nrow(.data))), ptype = integer())
+  vctrs::new_data_frame(list(.rows = rows), n = 1L)
+}
+
+#' @importFrom h2o colnames h2o.group_by
+eval_grouping <- function(data, colsub, keyby) {
+  message("evaluating columns with keyby: ", as.character(colsub), " ", as.character(keyby))
+
+  # according to data.table, by can be:
+  # • single unquoted name: by = x
+  # • list of expressions with column names: by = .(x = x > 0, y)
+  # • single character string: by = "x,y,z"
+  # • character vector: by = c("x", "y")
+  # • startcol:endcol: by = x:z
+  # for now, check for all but character string. Accept .() for dtplyr but no expressions.
+  root <- if (is.call(keyby)) as.character(keyby[[1L]])[1L] else ""
+  if(root == "list" || root == "c") {
+    keyby <- as.character(keyby[-1])
+  } else if(root == ":") {
+    stopifnot(length(keyby) == 3,
+              is.name(keyby[[2]]),
+              is.name(keyby[[3]]))
+
+    cols <- colnames(data)
+    start_col <- as.character(keyby[[2]])
+    end_col <- as.character(keyby[[3]])
+    start_i <- which(cols == start_col)
+    end_i <- which(cols == end_col)
+    stopifnot(length(start_i) == 1,
+              length(end_i) == 1,
+              end_i >= start_i)
+    keyby <- cols[start_i:end_i]
+  } else if(root == "") {
+    stopifnot(is.name(keyby))
+    keyby <- as.character(keyby)
+  } else stop("Keyby: root not recognized.")
+
+  # https://docs.h2o.ai/h2o/latest-stable/h2o-docs/data-munging/groupby.html
+  # h2o.groupby can only use the following:
+  # nrow
+  # min
+  # max
+  # mean
+  # mode -- categorical columns only
+  # median -- not listed but works
+  # count fails -- use nrow instead
+  # sd
+  # ss (sum of squares) -- fails
+  # sum
+  # var
+  # must include at least one aggregate function
+
+  # h2o::h2o.group_by(data = data, by = keyby, nrow("cyl"), mean("mpg"))
+
+  root <- if (is.call(colsub)) as.character(colsub[[1L]])[1L] else ""
+
+  if(root == "list" | root == "c") {
+    stopifnot(length(colsub) > 1)
+
+    # each call is a separate aggregation argument
+    stopifnot(sapply(colsub[-1], is.call))
+    args <- as.list(colsub[-1])
+
+  } else if(root == "") {
+    stop("Keyby: An aggregate function is required.")
+
+  } else {
+    args <- as.list(colsub)
+  }
+
+  # add "" to column names of the aggregate arguments
+  # switch out count for nrow
+  for(i in seq_len(length(args))) {
+    arg <- args[[i]]
+    stopifnot(length(arg) == 2,
+              is.name(arg[[1]]),
+              is.name(arg[[2]])
+    ) # all are of form mean(col)
+    if(as.character(arg[[1]]) == "count") arg[[1]] <- as.name("nrow")
+    arg[[2]] <- as.character(arg[[2]])
+    args[[i]] <- arg
+  }
+
+  args$data <- data
+  args$by <- keyby
+  data <- do.call(h2o::h2o.group_by, args)
+
+  new_names <- names(colsub)[-1]
+  if(!is.null(new_names) && any(new_names != "")) {
+    # rename aggregated columns
+    stopifnot(length(new_names) == length(args) - 2) # minus data and key
+    # keyed columns are returned as normal; only change the end columns
+    cols <- colnames(data)
+    new_names <- c(cols[1:length(args$by)], new_names)
+    blank_idx <- new_names == ""
+    new_names[blank_idx] <- cols[blank_idx]
+
+    h2o::colnames(data) <- new_names
+
+  }
+
+  return(data)
+}
+
 
 eval_columns <- function(data, colsub) {
   message("evaluating columns: ", as.character(colsub))
@@ -271,7 +403,7 @@ replace_dot_alias = function(e) {
 }
 
 # fn_col <- function(var) {
-#   var = replace_dot_alias(substitute(var))
+#   var = dtplyr:::replace_dot_alias(substitute(var))
 #   return(var)
 # }
 #
