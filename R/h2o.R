@@ -117,7 +117,6 @@
     colsub <- replace_dot_alias(substitute(col))
 
     if(column_is_grouped) {
-
       data <- eval_grouping(data = data, colsub = colsub, keyby = keyby)
 
     } else {
@@ -172,7 +171,7 @@ eval_grouping <- function(data, colsub, keyby) {
               end_i >= start_i)
     keyby <- cols[start_i:end_i]
   } else if(root == "") {
-    stopifnot(is.name(keyby))
+    stopifnot(is.name(keyby) | class(keyby) == "character")
     keyby <- as.character(keyby)
   } else stop("Keyby: root not recognized.")
 
@@ -204,6 +203,73 @@ eval_grouping <- function(data, colsub, keyby) {
 
   } else if(root == "") {
     stop("Keyby: An aggregate function is required.")
+
+  } else if(root == ":=") {
+    # := indicates a mutate function, such that the underlying non-subsetted frame is modified using subset data
+    # to accomplish this with h2o, need to create a separate frame to analyze the subset and then join them
+    colsub[[1]] <- as.name(".")
+    args <- list(data = data, col = colsub, by = as.name(keyby))
+
+    subdata <- do.call(dtplyr:::`[.H2OFrame`, args)
+    newcols <- setdiff(colnames(subdata), keyby)
+    cols_to_keep <- setdiff(colnames(data), newcols)
+
+    data <- h2o::h2o.merge(x = h2o:::`[.H2OFrame`(data = data, row = 1:nrow(data), col = cols_to_keep),
+              y = subdata,
+              by = keyby,
+              all.x = TRUE)
+
+    return(data)
+
+  } else if(root == "[" && as.character(colsub[[2]]) == ".SD") {
+    # .SD indicates a filter on a subset.
+    # e.g., .SD[mpg < mean(mpg)] in by_cyl %>% filter(mpg < mean(mpg))
+    # or .SD[mpg < mean(mpg), .(hp = mean(hp))]
+    # treat similarly to :=
+    # here, each subset should be filtered separately and then combined
+
+    # first, handle the row filter
+    stopifnot(length(colsub) == 3 | length(colsub) == 4)
+    sd_row <- colsub[[3]]
+
+    parts <- sublogicals_fn(sd_row)
+    parts <- parts[sapply(parts, is.call)]
+    stopifnot(length(parts) > 0)
+
+    col_call <- as.call(c(list(as.name("list")), parts))
+
+    args <- list(data = data, col = col_call, by = as.name(keyby))
+    subdata <- do.call(dtplyr:::`[.H2OFrame`, args)
+    newcols <- setdiff(colnames(subdata), keyby)
+    cols_to_keep <- setdiff(colnames(data), newcols)
+
+    joined_data <- h2o::h2o.merge(x = h2o:::`[.H2OFrame`(data = data, row = 1:nrow(data), col = cols_to_keep),
+                             y = subdata,
+                             by = keyby,
+                             all.x = TRUE)
+
+    # modify the aggregation calls to be the names of the newcols
+    # each new column is the function_column, like mean_mpg
+    for(i in seq_along(parts)) {
+      new_colsub <- substitute_call_element(sd_row,
+                                            element = parts[[i]],
+                                            replacement = as.name(paste(as.character(parts[[i]]), collapse = "_")))
+    }
+
+    # run the selection on the joined data, using the new columns, and remove the new columns
+    col_call <- as.call(c(as.name("list"), lapply(colnames(data), as.name)))
+    args <- list(data = joined_data, row = new_colsub, col = col_call)
+    filtered_data <- do.call(dtplyr:::`[.H2OFrame`, args)
+
+    # if a column argument provided, apply it to the filtered data
+    if(length(colsub) == 4) {
+      sd_col <- colsub[[4]]
+      args <- list(data = filtered_data, col = sd_col, keyby = as.name(keyby))
+      filtered_data <- do.call(dtplyr:::`[.H2OFrame`, args)
+
+    }
+
+    return(filtered_data)
 
   } else {
     args <- as.list(colsub)
@@ -380,13 +446,42 @@ subdatanames <- function(sub, data_name) {
     if(class(sub[[i]]) == "name") {
       sub[[i]] <- call("[[", as.name(data_name), as.character(sub[[i]]))
 
-    } else if(class(sub[[i]]) == "call") {
-      sub[[i]] <- subdatanames(sub[[i]], data_name = data_name)
-    } else if(class(sub[[i]]) == "<-") {
+    } else if(class(sub[[i]]) %in% c("call", "<-", "(")) {
       sub[[i]] <- subdatanames(sub[[i]], data_name = data_name)
     }
   }
   return(sub)
+}
+
+sublogicals_fn <- function(sub) {
+ unique(unlist(sublogicals(sub)))
+}
+
+sublogicals <- function(sub) {
+  print(sub)
+
+  if(is.name(sub)) return(sub)
+
+  LOGICAL_NAMES <- c("[", "(", "&", "|", "!", "==", "!=", "<", "<=", ">=", ">")
+  IGNORE_NAMES <- c(".SD")
+
+  ignore_idx <- as.character(sub) %in% IGNORE_NAMES
+  sub <- sub[!ignore_idx]
+
+  if(as.character(sub[[1]]) %in% LOGICAL_NAMES) {
+    return(lapply(sub[-1], sublogicals))
+
+  } else {
+    return(sub)
+  }
+}
+
+substitute_call_element <- function(the_call, element, replacement) {
+  for(i in seq_along(the_call)) {
+    if(identical(the_call[[i]], element)) the_call[[i]] <- replacement
+    if(is.call(the_call[[i]])) the_call[[i]] <- substitute_call_element(the_call = the_call[[i]], element = element, replacement = replacement)
+  }
+  return(the_call)
 }
 
 # from data.table; copied here to avoid importing internal data.table function
