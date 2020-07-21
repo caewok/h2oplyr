@@ -2,7 +2,7 @@
 % Please edit documentation in R/h2o.R
 \name{[<-.H2OFrame}
 \alias{[<-.H2OFrame}
-\title{Tidyeval h2o selection}
+\title{Extract or replace H2OFrame elements.}
 \usage{
 \method{[}{H2OFrame}(data, row, col, ...) <- value
 }
@@ -14,9 +14,6 @@
 \item{col}{One or more column names, joined using either list(), c(), or datatable's '.()' pronoun.}
 }
 \description{
-Extract or replace H2OFrame elements.
-}
-\details{
 Operators to extract or replace parts of H2OFrame objects.
 Uses tidyverse non-standard evaluation; replaces underlying H2O operators.
 Refer to column names without strings (see examples).

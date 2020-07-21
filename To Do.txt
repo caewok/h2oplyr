@@ -33,7 +33,7 @@ Dplyr verbs
 • distinct (step-call.R)
 • unique (step-call.R)
 • do (step-subset.R)
-• rename (step-call.R)
+√ rename (step-call.R)
 • sample_frac (step-subset.R)
 • sample_n (step-subset.R)
 √ slice (step-subset.R)
@@ -43,12 +43,12 @@ x slice_tail
 x slice_min
 x slice_max
 x slice_sample
-• left_join (step-join.R)
-• right_join (step-join.R)
-• inner_join (step-join.R)
-• full_join (step-join.R)
-• semi_join (step-join.R)
-• anti_join (step-join.R)
+√ left_join (step-join.R)
+√ right_join (step-join.R)
+√ inner_join (step-join.R)
+√ full_join (step-join.R)
+• semi_join (step-join.R) -- depends on unique
+• anti_join (step-join.R) -- depends on implementing on paramerter for data.table; passing a negative table, which probably cannnot happen
 • intersect (step-set.R)
 • union (step-set.R)
 • union_all (step-set.R)
