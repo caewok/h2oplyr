@@ -115,6 +115,7 @@
   # based on data.table `[` function
   if(!missing(col)) {
     colsub <- replace_dot_alias(substitute(col))
+    colsub <- replace_N_alias(colsub, col = colnames(data)[[1]])
 
     if(column_is_grouped) {
       data <- eval_grouping(data = data, colsub = colsub, keyby = keyby)
@@ -332,6 +333,16 @@ eval_columns <- function(data, colsub) {
 
         # replace the colsub entry with the new name, so that it is included in the final result
         colsub[[i]] <- as.name(new_col_name)
+      } else if(!is.name(colsub[[i]])) {
+        # integer or some other scalar
+        col_mod <- colsub[[i]]
+        new_col_name = names(colsub)[[i]]
+        if(is.null(new_col_name) || new_col_name == "") {
+          new_col_name <- paste0("V", i - 1)
+        }
+        data <- h2o:::`[<-.H2OFrame`(data, col = new_col_name, drop = FALSE, value = col_mod)
+        # replace the colsub entry with the new name, so that it is included in the final result
+        colsub[[i]] <- as.name(new_col_name)
       }
     }
 
@@ -484,6 +495,26 @@ substitute_call_element <- function(the_call, element, replacement) {
   return(the_call)
 }
 
+replace_N_alias <- function(sub, col) {
+  N_idx <- as.character(sub) == ".N"
+  if(any(N_idx)) {
+    for(i in which(N_idx)) {
+      sub[[i]] <- call("nrow", as.name(col))
+      if(names(sub)[[i]] == "") names(sub)[[i]] <- "N"
+    }
+  }
+
+  # recurse through the various calls
+  call_idx <- sapply(sub, is.call)
+  if(any(call_idx)) {
+    for(i in which(call_idx)) {
+      sub[[i]] <- replace_N_alias(sub = sub[[i]], col)
+    }
+  }
+
+  return(sub)
+}
+
 # from data.table; copied here to avoid importing internal data.table function
 replace_dot_alias = function(e) {
   # we don't just simply alias .=list because i) list is a primitive (faster to iterate) and ii) we test for use
@@ -527,3 +558,7 @@ replace_dot_alias = function(e) {
 # colsub <- fn_col(cyl := 8)
 # colsub <- fn_col(mpg := mean(mpg))
 # colsub <- fn_col(am := NULL)
+
+# group_size calls: dth2o_2[, .(n = .N), keyby = .(cyl)]
+# may or may not be in a group
+# colsub <- fn_col(.(n = .N))

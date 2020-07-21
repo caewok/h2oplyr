@@ -51,16 +51,24 @@ groups.dtplyr_step <- function(x) {
   syms(x$groups)
 }
 
+#' @importFrom dplyr group_vars
+#' @export
+group_vars.dtplyr_step <- function(x) {
+  x$groups
+}
+
 #' @importFrom dplyr group_size
 #' @export
 group_size.dtplyr_step <- function(x) {
+  if(length(x$groups) == 0) return(nrow(x))
   collect(summarise(x, n = .N))$n
 }
 
 #' @importFrom dplyr n_groups
 #' @export
 n_groups.dtplyr_step <- function(x) {
-  length(group_size(x))
+  if(length(x$groups) == 0) return(1)
+  length(group_size(x)) # will be wrong if no groups b/c h2o does not trim
 }
 
 #' Force computation of a lazy data.table
