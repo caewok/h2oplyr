@@ -1,23 +1,3 @@
-#' Tidyeval h2o selection
-#'
-# #' @importFrom h2o `[[<-.H2OFrame`
-# #' @importFrom rlang as_string ensym
-# `[[<-.H2OFrame` <- function(data, name, value) {
-#   message("In [[<-.H2OFrame")
-#   name <- rlang::as_string(rlang::ensym(name))
-#   # message("name is ", name)
-#   h2o:::`[[<-.H2OFrame`(data, name = name, value = value)
-# }
-
-# #' @importFrom h2o `[[.H2OFrame`
-# #' @importFrom rlang as_string ensym
-# `[[.H2OFrame` <- function(x, i, exact = TRUE) {
-#   message("In [[.H2OFrame")
-#   i <- rlang::as_string(rlang::ensym(i)) # really should be the only possiblity -- a single variable?
-#   # message("i is ", i)
-#   h2o:::`[[.H2OFrame`(x, i = i, exact = exact)
-# }
-
 #' Extract or replace H2OFrame elements.
 #'
 #' Operators to extract or replace parts of H2OFrame objects.
@@ -141,6 +121,67 @@ group_data.H2OFrame <- function(.data) {
   # same as dplyr::group_data.data.frame
   rows <- vctrs::new_list_of(list(seq_len(nrow(.data))), ptype = integer())
   vctrs::new_data_frame(list(.rows = rows), n = 1L)
+}
+
+#' Copy an H2OFrame
+#'
+#' Simply returns the H2OFrame; used only for consistency with data.table.
+copy
+
+#' Set column names of H2OFrame
+#'
+#' Mimics functionality of \code{\link[data.table]{setnames}} from the data.table package.
+#' Changes the column names of the provided H2OFrame.
+#'
+#' @param x H2OFrame
+#' @param old When new is provided, character names or numeric positions of column names to change. When new is not provided, a function or the new column names. If a function, it will be called with the current column names and is supposed to return the new column names. The new column names must be the same length as the number of columns. See examples.
+#' @param new Optional. It can be a function or the new column names. If a function, it will be called with old and expected to return the new column names. The new column names must be the same length as columns provided to old argument.
+#' @param skip_absent Skip items in old that are missing (i.e. absent) in 'names(x)'. Default FALSE halts with error if any are missing.
+#' @return The renamed H2OFrame.
+#' @export
+setnames <- function(x, ...) UseMethod("setnames")
+
+#' @importFrom data.table setnames
+#' @export
+setnames.default <- function(x, ...) data.table::setnames(x, ...)
+
+#' @export
+setnames.data.table <- function(x, ...) NextMethod()
+
+
+#' @importFrom h2o `colnames<-` colnames
+#' @export
+setnames.H2OFrame <- function(x, old, new, skip_absent = FALSE) {
+  # see setnames from the data.table package
+  existing_cols <- h2o::colnames(x)
+  if(missing(new)) {
+    if(is.function(old)) {
+      new <- old(existing_cols)
+    } else {
+      new <- old
+    }
+
+  } else {
+    # not missing new
+    stopifnot(is.character(old),
+              old %in% existing_cols)
+
+    if(is.function(new)) {
+      new <- new(old)
+    }
+
+    # create a full new list of column names
+    names(existing_cols) <- existing_cols
+    existing_cols[old] <- new
+    new <- unname(existing_cols) # probably don't need unname, but just in case
+
+  }
+
+  stopifnot(length(new) == ncol(x),
+            is.character(new))
+
+  h2o::colnames(x) <- new
+  return(x)
 }
 
 #' @importFrom h2o colnames h2o.group_by
