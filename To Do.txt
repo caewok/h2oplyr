@@ -48,7 +48,7 @@ x slice_sample
 √ inner_join (step-join.R)
 √ full_join (step-join.R)
 • semi_join (step-join.R) -- depends on unique
-• anti_join (step-join.R) -- depends on implementing on paramerter for data.table; passing a negative table, which probably cannnot happen
+• anti_join (step-join.R) -- depends on implementing on parameter for data.table; passing a negative table, which probably cannnot happen
 • intersect (step-set.R)
 • union (step-set.R)
 • union_all (step-set.R)

@@ -19,8 +19,11 @@
 #' @aliases tbl_dt grouped_dt
 #' @examples
 #' library(dplyr, warn.conflicts = FALSE)
+#' library(h2o)
 #'
-#' mtcars2 <- lazy_dt(mtcars)
+#' h2o.init()
+#' mtcars.hex <- as.h2o(mtcars, "mtcars")
+#' mtcars2 <- lazy_dt(mtcars.hex)
 #' mtcars2
 #' mtcars2 %>% select(mpg:cyl)
 #' mtcars2 %>% select(x = mpg, y = cyl)
