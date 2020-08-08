@@ -7,15 +7,15 @@ step_set <- function(x, y, style) {
     parent = x,
     parent2 = y,
     style = style,
-    class = "dtplyr_step_set"
+    class = "h2oplyr_step_set"
   )
 }
 
-dt_sources.dtplyr_step_set <- function(x) {
-  dt_sources.dtplyr_step_join(x)
+dt_sources.h2oplyr_step_set <- function(x) {
+  dt_sources.h2oplyr_step_join(x)
 }
 
-dt_call.dtplyr_step_set <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_set <- function(x, needs_copy = x$needs_copy) {
   lhs <- dt_call(x$parent, needs_copy)
   rhs <- dt_call(x$parent2)
 
@@ -33,24 +33,24 @@ dt_call.dtplyr_step_set <- function(x, needs_copy = x$needs_copy) {
 
 #' @importFrom dplyr intersect
 # Exported onload
-intersect.dtplyr_step <- function(x, y, ...) {
+intersect.h2oplyr_step <- function(x, y, ...) {
   step_set(x, y, style = "intersect")
 }
 
 #' @importFrom dplyr union
 # Exported onload
-union.dtplyr_step <- function(x, y, ...) {
+union.h2oplyr_step <- function(x, y, ...) {
   step_set(x, y, style = "union")
 }
 
 #' @importFrom dplyr union_all
 #' @export
-union_all.dtplyr_step <- function(x, y, ...) {
+union_all.h2oplyr_step <- function(x, y, ...) {
   step_set(x, y, style = "union_all")
 }
 
 #' @importFrom dplyr setdiff
 # Exported onload
-setdiff.dtplyr_step <- function(x, y, ...) {
+setdiff.h2oplyr_step <- function(x, y, ...) {
   step_set(x, y, style = "setdiff")
 }

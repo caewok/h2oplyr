@@ -12,11 +12,11 @@ step_call <- function(parent, fun, args = list(), vars = parent$vars, in_place =
     needs_copy = in_place || parent$needs_copy,
     fun = fun,
     args = args,
-    class = "dtplyr_step_call"
+    class = "h2oplyr_step_call"
   )
 }
 
-dt_call.dtplyr_step_call <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_call <- function(x, needs_copy = x$needs_copy) {
   call2(x$fun, dt_call(x$parent, needs_copy), !!!x$args)
 }
 
@@ -24,19 +24,19 @@ dt_call.dtplyr_step_call <- function(x, needs_copy = x$needs_copy) {
 
 #' @importFrom utils head
 #' @export
-head.dtplyr_step <- function(x, n = 6L, ...) {
+head.h2oplyr_step <- function(x, n = 6L, ...) {
   step_call(x, "head", args = list(n = n))
 }
 
 #' @importFrom utils tail
 #' @export
-tail.dtplyr_step <- function(x, n = 6L, ...) {
+tail.h2oplyr_step <- function(x, n = 6L, ...) {
   step_call(x, "tail", args = list(n = n))
 }
 
 #' @importFrom dplyr rename
 #' @export
-rename.dtplyr_step <- function(.data, ...) {
+rename.h2oplyr_step <- function(.data, ...) {
   vars <- tidyselect::vars_rename(.data$vars, ...)
   new_vars <- names(vars)
   vars <- vars[vars != names(vars)]
@@ -60,7 +60,7 @@ rename.dtplyr_step <- function(.data, ...) {
 #' @importFrom dplyr distinct
 #' @importFrom h2o h2o.unique
 #' @export
-distinct.dtplyr_step <- function(.data, ..., .keep_all = FALSE) {
+distinct.h2oplyr_step <- function(.data, ..., .keep_all = FALSE) {
   dots <- capture_dots(.data, ...)
 
   if (length(dots) > 0) {
@@ -93,9 +93,9 @@ distinct.dtplyr_step <- function(.data, ..., .keep_all = FALSE) {
 
 
 #' @export
-unique.dtplyr_step <- function(x, incomparables = FALSE, ...) {
+unique.h2oplyr_step <- function(x, incomparables = FALSE, ...) {
   if (!missing(incomparables)) {
-    abort("`incomparables` not supported by `unique.dtplyr_step()`")
+    abort("`incomparables` not supported by `unique.h2oplyr_step()`")
   }
   distinct(x)
 }

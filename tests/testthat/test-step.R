@@ -40,7 +40,7 @@ test_that("compute returns lazy_dt", {
   dt <- summarise(dt, n = n())
 
   dt2 <- compute(dt)
-  expect_s3_class(dt2, "dtplyr_step")
+  expect_s3_class(dt2, "h2oplyr_step")
   expect_equal(as.character(tbl_vars(dt2)), "n")
 })
 

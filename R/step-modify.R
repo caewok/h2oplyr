@@ -4,11 +4,11 @@ step_modify <- function(parent, fun, args) {
     implicit_copy = TRUE,
     fun = fun,
     args = args,
-    class = "dtplyr_step_modify"
+    class = "h2oplyr_step_modify"
   )
 }
 
-dt_call.dtplyr_step_modify <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_modify <- function(x, needs_copy = x$needs_copy) {
   j <- call2(x$fun, quote(.SD), quote(.BY), !!!x$args)
   out <- call2("[", dt_call(x$parent, needs_copy), , j)
 
@@ -24,7 +24,7 @@ dt_call.dtplyr_step_modify <- function(x, needs_copy = x$needs_copy) {
 #'
 #' `group_modify()` applies `.f` to each group, returning a modified
 #' [lazy_dt()]. This function is a little less flexible than the data.frame
-#' method due to the constraints of the code generation that dtplyr uses.
+#' method due to the constraints of the code generation that h2oplyr uses.
 #'
 #' @param .tbl A [lazy_dt]
 #' @param .f The name of a two argument function. The first argument is passed
@@ -42,7 +42,7 @@ dt_call.dtplyr_step_modify <- function(x, needs_copy = x$needs_copy) {
 #'   lazy_dt() %>%
 #'   group_by(cyl) %>%
 #'   group_modify(head, n = 2L)
-group_modify.dtplyr_step <- function(.tbl, .f, ..., keep = FALSE) {
+group_modify.h2oplyr_step <- function(.tbl, .f, ..., keep = FALSE) {
   if (!missing(keep)) {
     abort("`keep` is not supported for lazy data tables")
   }

@@ -1,23 +1,18 @@
-Package: dtplyr
-Title: Data Table Back-End for 'dplyr'
-Version: 1.0.0.9000
+Package: h2oplyr
+Title: H2O Back-End for 'dplyr'
+Version: 0.1.0.1000
 Authors@R: 
-    c(person(given = "Lionel",
-             family = "Henry",
-             role = "aut",
-             email = "lionel@rstudio.com"),
-      person(given = "Hadley",
-             family = "Wickham",
+    c(person(given = "Michael",
+             family = "Enion",
              role = "cre",
-             email = "hadley@rstudio.com"),
-      person(given = "RStudio",
-             role = "cph"))
-Description: Provides a data.table backend for 'dplyr'. The goal of 'dtplyr' 
+             email = "caewok_2000@yahoo.com"))
+Description: Provides an H2O backend for 'dplyr'. The goal of 'h2oplyr' 
     is to allow you to write 'dplyr' code that is automatically translated to 
-    the equivalent, but usually much faster, data.table code.
+    the equivalent H2O code. As a side-effect, certain basic H2O functions have been 
+    modified to accept a subset of data.table type commands.
 License: GPL-3
-URL: https://github.com/tidyverse/dtplyr
-BugReports: https://github.com/tidyverse/dtplyr/issues
+URL: https://gitlab.com/caewok/h2oplyr
+BugReports: https://gitlab.com/caewok/h2oplyr/issues
 Depends: 
     R (>= 3.2),
     h2o

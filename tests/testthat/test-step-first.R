@@ -2,7 +2,7 @@ test_that("constructor has sensible defaults", {
   dt <- data.table(x = 1:2, y = 1:2)
   step <- step_first(dt)
 
-  expect_s3_class(step, "dtplyr_step_first")
+  expect_s3_class(step, "h2oplyr_step_first")
   expect_equal(step$parent, dt)
   expect_equal(step$vars, c("x", "y"))
   expect_equal(step$groups, character())

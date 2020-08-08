@@ -30,43 +30,43 @@ new_step <- function(parent,
       env = env,
       ...
     ),
-    class = c(class, "dtplyr_step")
+    class = c(class, "h2oplyr_step")
   )
 }
 
 #' @export
-dim.dtplyr_step <- function(x) {
+dim.h2oplyr_step <- function(x) {
   c(NA, length(x$vars))
 }
 
 #' @importFrom dplyr tbl_vars
 #' @export
-tbl_vars.dtplyr_step <- function(x) {
+tbl_vars.h2oplyr_step <- function(x) {
   x$vars
 }
 
 #' @importFrom dplyr groups
 #' @export
-groups.dtplyr_step <- function(x) {
+groups.h2oplyr_step <- function(x) {
   syms(x$groups)
 }
 
 #' @importFrom dplyr group_vars
 #' @export
-group_vars.dtplyr_step <- function(x) {
+group_vars.h2oplyr_step <- function(x) {
   x$groups
 }
 
 #' @importFrom dplyr group_size
 #' @export
-group_size.dtplyr_step <- function(x) {
+group_size.h2oplyr_step <- function(x) {
   if(length(x$groups) == 0) return(nrow(x))
   collect(summarise(x, n = .N))$n
 }
 
 #' @importFrom dplyr n_groups
 #' @export
-n_groups.dtplyr_step <- function(x) {
+n_groups.h2oplyr_step <- function(x) {
   if(length(x$groups) == 0) return(1)
   length(group_size(x)) # will be wrong if no groups b/c h2o does not trim
 }
@@ -84,7 +84,7 @@ n_groups.dtplyr_step <- function(x) {
 #' @param ... Arguments used by other methods.
 #' @importFrom dplyr collect
 #' @rdname collect
-collect.dtplyr_step <- function(x, ...) {
+collect.h2oplyr_step <- function(x, ...) {
   # for consistency with dbplyr::collect()
   out <- as_tibble(x)
 
@@ -98,7 +98,7 @@ collect.dtplyr_step <- function(x, ...) {
 #' @rdname collect
 #' @export
 #' @importFrom dplyr compute
-compute.dtplyr_step <- function(x, name = unique_name(), ...) {
+compute.h2oplyr_step <- function(x, name = unique_name(), ...) {
   tbl.hex <- dt_eval(x)
   if(h2o::h2o.getId(tbl.hex) != name) tbl.hex <- h2o::h2o.assign(tbl.hex, name)
   out <- lazy_dt(tbl.hex)
@@ -113,26 +113,26 @@ compute.dtplyr_step <- function(x, name = unique_name(), ...) {
 #' @rdname collect
 #' @export
 #' @param keep.rownames Ignored as dplyr never preseres rownames.
-as.data.table.dtplyr_step <- function(x, keep.rownames = FALSE, ...) {
+as.data.table.h2oplyr_step <- function(x, keep.rownames = FALSE, ...) {
   dt_eval(x)
 }
 
 #' @rdname collect
 #' @export
-as.data.frame.dtplyr_step <- function(x, ...) {
+as.data.frame.h2oplyr_step <- function(x, ...) {
   as.data.frame(dt_eval(x))
 }
 
 #' @rdname collect
 #' @export
 #' @importFrom tibble as_tibble
-as_tibble.dtplyr_step <- function(x, ...) {
+as_tibble.h2oplyr_step <- function(x, ...) {
   as_tibble(dt_eval(x))
 }
 
 #' @export
 #' @importFrom dplyr pull
-pull.dtplyr_step <- function(.data, var = -1) {
+pull.h2oplyr_step <- function(.data, var = -1) {
   expr <- enquo(var)
   var <- dplyr:::find_var(expr, .data$vars)
 
@@ -143,7 +143,7 @@ pull.dtplyr_step <- function(.data, var = -1) {
 }
 
 #' @export
-print.dtplyr_step <- function(x, ...) {
+print.h2oplyr_step <- function(x, ...) {
   cat_line(crayon::bold("Source: "), "h2o frame ", dplyr::dim_desc(x))
   cat_line(crayon::bold("Call:   "), expr_text(dt_call(x)))
   cat_line()
@@ -158,11 +158,11 @@ print.dtplyr_step <- function(x, ...) {
 
 #' @importFrom dplyr show_query
 #' @export
-show_query.dtplyr_step <- function(x) {
+show_query.h2oplyr_step <- function(x) {
   dt_call(x)
 }
 
-is_step <- function(x) inherits(x, "dtplyr_step")
+is_step <- function(x) inherits(x, "h2oplyr_step")
 
 
 # Returns a named list of data.tables: most just dispatch to their
@@ -170,13 +170,13 @@ is_step <- function(x) inherits(x, "dtplyr_step")
 dt_sources <- function(x) {
   UseMethod("dt_sources")
 }
-dt_sources.dtplyr_step <- function(x) {
+dt_sources.h2oplyr_step <- function(x) {
   dt_sources(x$parent)
 }
 
 dt_call <- function(x, needs_copy = x$needs_copy) {
   UseMethod("dt_call")
 }
-dt_call.dtplyr_step <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step <- function(x, needs_copy = x$needs_copy) {
   dt_call(x$parent, needs_copy)
 }

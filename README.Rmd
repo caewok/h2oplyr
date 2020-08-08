@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# dtplyr
+# h2oplyr
 
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/dtplyr)](https://cran.r-project.org/package=dtplyr)

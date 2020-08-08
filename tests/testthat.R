@@ -1,4 +1,4 @@
 library(testthat)
-library(dtplyr)
+library(h2oplyr)
 
-test_check("dtplyr")
+test_check("h2oplyr")

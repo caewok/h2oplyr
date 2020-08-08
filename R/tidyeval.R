@@ -8,7 +8,7 @@ dt_eval <- function(x) {
 
 #' @importFrom data.table frank fifelse fcoalesce
 add_dt_wrappers <- function(env) {
-  # Make sure data.table functions are available so dtplyr still works
+  # Make sure data.table functions are available so h2oplyr still works
   # even when data.table isn't attached
   env$setname <- data.table::setnames
   env$copy <- data.table::copy

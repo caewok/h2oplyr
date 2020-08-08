@@ -8,11 +8,11 @@ step_mutate <- function(parent, new_vars = list(), nested = FALSE) {
     needs_copy = !parent$implicit_copy,
     new_vars = new_vars,
     nested = nested,
-    class = "dtplyr_step_mutate"
+    class = "h2oplyr_step_mutate"
   )
 }
 
-dt_call.dtplyr_step_mutate <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_mutate <- function(x, needs_copy = x$needs_copy) {
   # i is always empty because we never mutate a subset
   if (!x$nested) {
     j <- call2(":=", !!!x$new_vars)
@@ -35,7 +35,7 @@ dt_call.dtplyr_step_mutate <- function(x, needs_copy = x$needs_copy) {
 
 #' @importFrom dplyr mutate
 #' @export
-mutate.dtplyr_step <- function(.data, ...) {
+mutate.h2oplyr_step <- function(.data, ...) {
   if (missing(...)) {
     return(.data)
   }

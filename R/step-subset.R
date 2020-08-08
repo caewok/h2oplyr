@@ -19,7 +19,7 @@ step_subset <- function(parent,
     j = j,
     on = on,
     implicit_copy = !is.null(i) || !is.null(j),
-    class = "dtplyr_step_subset"
+    class = "h2oplyr_step_subset"
   )
 }
 
@@ -50,7 +50,7 @@ step_subset_j <- function(parent,
 
 can_merge_subset <- function(x) {
   # Can only merge subsets
-  if (!inherits(x, "dtplyr_step_subset")) {
+  if (!inherits(x, "h2oplyr_step_subset")) {
     return(FALSE)
   }
 
@@ -61,7 +61,7 @@ can_merge_subset <- function(x) {
   is.null(x$j)
 }
 
-dt_sources.dtplyr_step_subset <- function(x) {
+dt_sources.h2oplyr_step_subset <- function(x) {
   # TODO: need to throw error if same name refers to different tables.
   if (is_step(x$i)) {
     utils::modifyList(dt_sources(x$parent), dt_sources(x$i))
@@ -70,7 +70,7 @@ dt_sources.dtplyr_step_subset <- function(x) {
   }
 }
 
-dt_call.dtplyr_step_subset <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_subset <- function(x, needs_copy = x$needs_copy) {
   if (is.null(x$i) && is.null(x$j)) {
     return(dt_call(x$parent))
   }
@@ -114,7 +114,7 @@ dt_call.dtplyr_step_subset <- function(x, needs_copy = x$needs_copy) {
 
 #' @importFrom dplyr select
 #' @export
-select.dtplyr_step <- function(.data, ...) {
+select.h2oplyr_step <- function(.data, ...) {
   vars <- tidyselect::vars_select(.data$vars, ..., .include = .data$groups)
   new_vars <- names(vars)
 
@@ -134,7 +134,7 @@ select.dtplyr_step <- function(.data, ...) {
 
 #' @importFrom dplyr summarise
 #' @export
-summarise.dtplyr_step <- function(.data, ...) {
+summarise.h2oplyr_step <- function(.data, ...) {
   dots <- capture_dots(.data, ...)
   check_summarise_vars(dots)
 
@@ -158,7 +158,7 @@ summarise.dtplyr_step <- function(.data, ...) {
 
 #' @importFrom dplyr transmute
 #' @export
-transmute.dtplyr_step <- function(.data, ...) {
+transmute.h2oplyr_step <- function(.data, ...) {
   dots <- capture_dots(.data, ...)
   nested <- nested_vars(.data, dots, .data$vars)
 
@@ -173,7 +173,7 @@ transmute.dtplyr_step <- function(.data, ...) {
 }
 
 # exported onLoad
-filter.dtplyr_step <- function(.data, ...) {
+filter.h2oplyr_step <- function(.data, ...) {
   dots <- capture_dots(.data, ..., .j = FALSE)
 
   if (length(dots) == 1 && is_symbol(dots[[1]])) {
@@ -188,7 +188,7 @@ filter.dtplyr_step <- function(.data, ...) {
 
 #' @importFrom dplyr arrange
 #' @export
-arrange.dtplyr_step <- function(.data, ..., .by_group = FALSE) {
+arrange.h2oplyr_step <- function(.data, ..., .by_group = FALSE) {
   dots <- capture_dots(.data, ..., .j = FALSE)
   if (.by_group) {
     dots <- c(syms(.data$groups), dots)
@@ -206,7 +206,7 @@ arrange.dtplyr_step <- function(.data, ..., .by_group = FALSE) {
 
 #' @importFrom dplyr slice
 #' @export
-slice.dtplyr_step <- function(.data, ...) {
+slice.h2oplyr_step <- function(.data, ...) {
   dots <- capture_dots(.data, ..., .j = FALSE)
 
   if (length(dots) == 0) {
@@ -222,7 +222,7 @@ slice.dtplyr_step <- function(.data, ...) {
 
 #' @importFrom dplyr sample_n
 #' @export
-sample_n.dtplyr_step <- function(tbl,
+sample_n.h2oplyr_step <- function(tbl,
                                  size,
                                  replace = FALSE,
                                  weight = NULL
@@ -233,7 +233,7 @@ sample_n.dtplyr_step <- function(tbl,
 
 #' @importFrom dplyr sample_frac
 #' @export
-sample_frac.dtplyr_step <- function(tbl,
+sample_frac.h2oplyr_step <- function(tbl,
                                     size = 1,
                                     replace = FALSE,
                                     weight = NULL
@@ -255,7 +255,7 @@ sample_call <- function(size, replace = FALSE, weight = NULL) {
 
 #' @importFrom dplyr do
 #' @export
-do.dtplyr_step <- function(.data, ...) {
+do.h2oplyr_step <- function(.data, ...) {
   # This is a partial implementation, because I don't think that many
   # people are likely to use it, given that do() is marked as questioning
   # Problems:
@@ -267,7 +267,7 @@ do.dtplyr_step <- function(.data, ...) {
 
   if (any(names2(dots) == "")) {
     # I can't see any way to figure out what the variables are
-    abort("Unnamed do() not supported by dtplyr")
+    abort("Unnamed do() not supported by h2oplyr")
   }
 
   new_vars <- lapply(dots, function(x) call2(".", x))

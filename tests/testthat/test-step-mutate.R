@@ -2,7 +2,7 @@ test_that("constructor has sensible defaults", {
   first <- step_first(data.table(x = 1), "DT")
   step <- step_mutate(first)
 
-  expect_s3_class(step, "dtplyr_step_mutate")
+  expect_s3_class(step, "h2oplyr_step_mutate")
   expect_equal(step$parent, first)
   expect_equal(step$vars, "x")
   expect_equal(step$groups, character())

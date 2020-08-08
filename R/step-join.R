@@ -18,16 +18,16 @@ step_join <- function(x, y, on, style, suffix = c(".x", ".y")) {
     on = on,
     suffix = suffix,
     style = style,
-    class = "dtplyr_step_join"
+    class = "h2oplyr_step_join"
   )
 }
 
-dt_sources.dtplyr_step_join <- function(x) {
+dt_sources.h2oplyr_step_join <- function(x) {
   # TODO: need to throw error if same name refers to different tables.
   utils::modifyList(dt_sources(x$parent), dt_sources(x$parent2))
 }
 
-dt_call.dtplyr_step_join <- function(x, needs_copy = x$needs_copy) {
+dt_call.h2oplyr_step_join <- function(x, needs_copy = x$needs_copy) {
   lhs <- dt_call(x$parent, needs_copy)
   rhs <- dt_call(x$parent2)
   on <- call2(".", !!!syms(x$on))
@@ -58,9 +58,9 @@ dt_call.dtplyr_step_join <- function(x, needs_copy = x$needs_copy) {
 
 #' @importFrom dplyr left_join
 #' @export
-left_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
-  by <- dtplyr_common_by(by, x, y)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+left_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
+  by <- h2oplyr_common_by(by, x, y)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   common_vars <- setdiff(intersect(x$vars, y$vars), by)
   if (length(common_vars) == 0) {
@@ -77,9 +77,9 @@ left_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c
 
 #' @importFrom dplyr right_join
 #' @export
-right_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
-  by <- dtplyr_common_by(by, y, x)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+right_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
+  by <- h2oplyr_common_by(by, y, x)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   common_vars <- setdiff(intersect(x$vars, y$vars), by)
   if (length(common_vars) == 0) {
@@ -96,48 +96,48 @@ right_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = 
 
 #' @importFrom dplyr inner_join
 #' @export
-inner_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
-  by <- dtplyr_common_by(by, x, y)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+inner_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
+  by <- h2oplyr_common_by(by, x, y)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   step_join(x, y, on = by, style = "inner", suffix = suffix)
 }
 
 #' @importFrom dplyr full_join
 #' @export
-full_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
-  by <- dtplyr_common_by(by, x, y)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+full_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE, suffix = c(".x", ".y")) {
+  by <- h2oplyr_common_by(by, x, y)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   step_join(x, y, on = by, style = "full", suffix = suffix)
 }
 
 #' @importFrom dplyr anti_join
 #' @export
-anti_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE) {
-  by <- dtplyr_common_by(by, x, y)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+anti_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE) {
+  by <- h2oplyr_common_by(by, x, y)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   step_join(x, y, on = by, style = "anti")
 }
 
 #' @importFrom dplyr semi_join
 #' @export
-semi_join.dtplyr_step <- function(x, y, ..., by = NULL, copy = FALSE) {
-  by <- dtplyr_common_by(by, x, y)
-  y <- dtplyr_auto_copy(x, y, copy = copy)
+semi_join.h2oplyr_step <- function(x, y, ..., by = NULL, copy = FALSE) {
+  by <- h2oplyr_common_by(by, x, y)
+  y <- h2oplyr_auto_copy(x, y, copy = copy)
 
   step_join(x, y, on = by, style = "semi")
 }
 
 # helpers -----------------------------------------------------------------
 
-dtplyr_common_by <- function(by, x, y) {
+h2oplyr_common_by <- function(by, x, y) {
   by <- dplyr::common_by(by, x, y)
   simplify_names(stats::setNames(by$x, by$y))
 }
 
-dtplyr_auto_copy <- function(x, y, copy = copy) {
+h2oplyr_auto_copy <- function(x, y, copy = copy) {
   if (is_step(y)) {
     y
   } else if (is.data.frame(y)) { # includes data tables
@@ -149,13 +149,13 @@ dtplyr_auto_copy <- function(x, y, copy = copy) {
 
 #' @importFrom dplyr same_src
 #' @export
-same_src.dtplyr_step <- function(x, y) {
+same_src.h2oplyr_step <- function(x, y) {
   is_step(y)
 }
 
 #' @importFrom dplyr auto_copy
 #' @export
-auto_copy.dtplyr_step <- function(x, y, copy = FALSE, ...) {
+auto_copy.h2oplyr_step <- function(x, y, copy = FALSE, ...) {
   lazy_dt(as.data.frame(y))
 }
 

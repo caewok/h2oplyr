@@ -3,7 +3,7 @@ step_group <- function(parent, groups = parent$groups) {
     parent,
     vars = parent$vars,
     groups = groups,
-    class = "dtplyr_step_group"
+    class = "h2oplyr_step_group"
   )
 }
 
@@ -11,7 +11,7 @@ step_group <- function(parent, groups = parent$groups) {
 
 #' @importFrom dplyr group_by
 #' @export
-group_by.dtplyr_step <- function(.data, ..., add = FALSE) {
+group_by.h2oplyr_step <- function(.data, ..., add = FALSE) {
   dots <- capture_dots(.data, ...)
 
   existing <- vapply(dots, is_symbol, logical(1))
@@ -26,6 +26,6 @@ group_by.dtplyr_step <- function(.data, ..., add = FALSE) {
 
 #' @importFrom dplyr ungroup
 #' @export
-ungroup.dtplyr_step <- function(.data, ...) {
+ungroup.h2oplyr_step <- function(.data, ...) {
   step_group(.data, groups = character())
 }

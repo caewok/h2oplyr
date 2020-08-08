@@ -111,13 +111,13 @@
     stop("Only one of 'by' or 'keyby' should be specified")
   } else if(!missing(by)) {
     if(missing(col)) stop("Applying a group to an H2O Frame requires specification of an aggregate function for the col variable.")
-    # keyby <- dtplyr:::replace_dot_alias(rlang::enexpr(by))
-    keyby_expr <- dtplyr:::replace_dot_alias(rlang::enexpr(by))
+    # keyby <- h2oplyr:::replace_dot_alias(rlang::enexpr(by))
+    keyby_expr <- h2oplyr:::replace_dot_alias(rlang::enexpr(by))
     column_is_grouped <- TRUE
   } else if(!missing(keyby)) {
     if(missing(col)) stop("Applying a group to an H2O Frame requires specification of an aggregate function for the col variable.")
-    keyby_expr <- dtplyr:::replace_dot_alias(rlang::enexpr(keyby))
-    # keyby <- dtplyr:::replace_dot_alias(rlang::enexpr(keyby))
+    keyby_expr <- h2oplyr:::replace_dot_alias(rlang::enexpr(keyby))
+    # keyby <- h2oplyr:::replace_dot_alias(rlang::enexpr(keyby))
     column_is_grouped <- TRUE
   }
 
@@ -353,7 +353,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
   # • single character string: by = "x,y,z"
   # • character vector: by = c("x", "y")
   # • startcol:endcol: by = x:z
-  # for now, check for all but character string. Accept .() for dtplyr but no expressions.
+  # for now, check for all but character string. Accept .() for h2oplyr but no expressions.
 
   root <- if (is.call(keyby_expr)) as.character(keyby_expr[[1L]])[1L] else ""
   if(root == "list") {
@@ -411,7 +411,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
     colsub_expr[[1]] <- as.name(".")
     args <- list(data = eval_env$data, col = colsub_expr, by = keyby_expr)
 
-    subdata <- do.call(dtplyr:::`[.H2OFrame`, args)
+    subdata <- do.call(h2oplyr:::`[.H2OFrame`, args)
     newcols <- setdiff(colnames(subdata), keyby_value)
     cols_to_keep <- setdiff(data_mask, newcols)
 
@@ -441,7 +441,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
 
     col_call <- as.call(c(list(as.name(":=")), parts)) # add the filtered row(s) results
     args <- list(data = eval_env$data, col = col_call, by = keyby_expr)
-    joined_data <- do.call(dtplyr:::`[.H2OFrame`, args)
+    joined_data <- do.call(h2oplyr:::`[.H2OFrame`, args)
 
 
     # modify the aggregation calls to be the names of the newcols
@@ -455,7 +455,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
     # run the selection on the joined data, using the new columns, and then remove the new columns
     args <- list(data = joined_data, row = new_colsub, col = data_mask %>% unname)
     assign("data",
-           value = do.call(dtplyr:::`[.H2OFrame`, args),
+           value = do.call(h2oplyr:::`[.H2OFrame`, args),
            env = eval_env)
 
     # if a column argument provided, apply it to the filtered data
@@ -463,7 +463,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
       sd_col <- colsub_expr[[4]]
       args <- list(data = eval_env$data, col = sd_col, keyby = keyby_value)
       assign("data",
-             value = do.call(dtplyr:::`[.H2OFrame`, args),
+             value = do.call(h2oplyr:::`[.H2OFrame`, args),
              env = eval_env)
     }
 
@@ -599,7 +599,7 @@ eval_columns <- function(colsub_expr, eval_env) {
     # differing forms:
     # simple: cyl := 8 or mpg := mean(mpg) --> `:=`(cyl, 8) or `:=`(mpg, mean(mpg)), length 3, not named
     # functional: `:=`(cyl2 = cyl * 2, cyl4 = cyl2 * 2, .(cyl2, cyl4)) --> length varies, named
-    # dtplyr using {}: `:=`(c("cyl2", "cyl4"), {
+    # h2oplyr using {}: `:=`(c("cyl2", "cyl4"), {
     #   cyl2 <- cyl * 2
     #   cyl4 <- cyl2 * 2
     #   .(cyl2, cyl4)
@@ -870,10 +870,10 @@ replace_dot_alias = function(e) {
   e
 }
 
-# fn_col <- function(var) dtplyr:::replace_dot_alias(rlang::enexpr(var))
+# fn_col <- function(var) h2oplyr:::replace_dot_alias(rlang::enexpr(var))
 # fn_row <- function(var) rlang::enexpr(var)
 
-# typical dtplyr mutate
+# typical h2oplyr mutate
 # colsub <- fn_col(`:=`(c("cyl2", "cyl4"), {
 #   cyl2 <- cyl * 2
 #   cyl4 <- cyl2 * 2
@@ -883,11 +883,11 @@ replace_dot_alias = function(e) {
 # copy(dth2o_2)[, `:=`(cyl2 = cyl * 2)]
 # colsub <- fn_col(`:=`(cyl2 = cyl * 2))
 
-# typical dtplyr transmute
+# typical h2oplyr transmute
 # `_DT1`[, .(cyl2 = cyl * 2, vs2 = vs * 2)]
 # colsub <- fn_col(.(cyl2 = cyl * 2, vs2 = vs * 2))
 
-# dtplyr summarize
+# h2oplyr summarize
 # mean works; median doesn't
 # Call:   dth2o_2[, .(a = median(mpg))]
 # colsub <- fn_col(.(a = median(mpg)))
@@ -902,7 +902,7 @@ replace_dot_alias = function(e) {
 # colsub <- fn_col(.(n = .N))
 
 
-# dtplyr calls
+# h2oplyr calls
 # > mtcars2 %>% select(mpg:cyl)
 # Source: local data table [?? x 2]
 # Call:   `_DT1`[, .(mpg, cyl)]
@@ -956,7 +956,7 @@ replace_dot_alias = function(e) {
 # }
 #
 # fn2 <- function(data, arg) {
-#   arg_sub <- dtplyr:::replace_dot_alias(rlang::enquo(arg))
+#   arg_sub <- h2oplyr:::replace_dot_alias(rlang::enquo(arg))
 #   arg_expr <- rlang::get_expr(arg_sub)
 #   print(as.character(arg_expr))
 #
@@ -966,7 +966,7 @@ replace_dot_alias = function(e) {
 #
 #   # out <- rlang::eval_tidy(arg_expr, data = h2o::colnames(data) %>% rlang::set_names())
 #
-#   arg_expr <- dtplyr:::subdatanames(arg_expr, data_name = "data")
+#   arg_expr <- h2oplyr:::subdatanames(arg_expr, data_name = "data")
 #   parent_env <- parent.frame()
 #   env <- new.env(parent = parent_env)
 #   assign("data", data, envir = env)
