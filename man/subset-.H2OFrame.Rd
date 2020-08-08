@@ -27,4 +27,5 @@ mtcars.hex[, list(x = mpg, y = cyl)]
 mtcars.hex[1:5,]
 mtcars.hex[cyl == 4 & mpg > 20, c(mpg, cyl, wt)]
 }
+
 }

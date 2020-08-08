@@ -18,6 +18,10 @@
 #' mtcars.hex[1:5,]
 #' mtcars.hex[cyl == 4 & mpg > 20, c(mpg, cyl, wt)]
 #' }
+#'
+#' @importFrom rlang enexpr set_names
+#' @importFrom h2o is.h2o colnames `colnames<-`
+#' @importFrom dplyr `%>%`
 #' @export
 `[<-.H2OFrame` <- function(data, row, col, ..., value) {
   message("In [<-.H2OFrame")
@@ -341,6 +345,7 @@ as.data.frame.H2OFrame <- function(x, ...) {
 
 
 #' @importFrom h2o colnames h2o.group_by
+#' @importFrom rlang eval_tidy call2
 eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
   message(sprintf("evaluating columns: %s\n        with keyby: %s",
                   paste(as.character(colsub_expr), collapse = " "),
@@ -528,6 +533,8 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
 #   invisible()
 # }
 
+#' @importFrom h2o colnames
+#' @importFrom rlang set_names eval_tidy
 eval_columns <- function(colsub_expr, eval_env) {
   message("evaluating columns: ", as.character(colsub_expr))
   data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
@@ -607,7 +614,7 @@ eval_columns <- function(colsub_expr, eval_env) {
     stopifnot(length(colsub_expr) >= 2)
 
     if(is.null(names(colsub_expr))) {
-      expr_name <- try(rlang::eval_tidy(colsub_expr[[2]], data = data_mask, env = eval_env))
+      expr_name <- try(rlang::eval_tidy(colsub_expr[[2]], data = data_mask, env = eval_env), silent = TRUE)
       if(inherits(expr_name, "try-error")) expr_name <- as.character(colsub_expr[[2]])
       expr_name <- c("", expr_name)
       colsub_expr <- colsub_expr[-2]
@@ -658,6 +665,8 @@ eval_columns <- function(colsub_expr, eval_env) {
 }
 
 
+#' @importFrom h2o colnames
+#' @importFrom rlang eval_tidy set_names
 eval_rows <- function(rowsub_expr, eval_env) {
   if(class(rowsub_expr[[1]]) == "name" & as.character(rowsub_expr[[1]]) == "order") {
     stopifnot(length(rowsub_expr) > 1)
@@ -737,6 +746,7 @@ h2o_function_replacement <- function(fn_name) {
 # walk through sub expression
 # replace aggregation function names like "mean" with "h2o.mean"
 # replace references to data columns with data[[columns]]
+#' @importFrom rlang call2
 sub_h2o_data_names <- function(sub, data_mask) {
 
   if(length(sub) == 1) {
@@ -778,6 +788,8 @@ expr_is_dot_data <- function(expr) {
   all(sapply(expr, class) == "name") && expr[[1]] == "$" && expr[[2]] == ".data"
 }
 
+#' @importFrom h2o colnames
+#' @importFrom rlang set_names eval_tidy
 sub_variable_names <- function(sub, eval_env) {
   if(length(sub) == 0) return(sub) # usually setting NULL value
 
