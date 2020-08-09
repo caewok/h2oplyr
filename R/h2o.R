@@ -257,6 +257,10 @@ as.h2o <- function(x, ...) {
     x[, posix_idx] <- lapply(x[, posix_idx], gsub, pattern = "[.]000Z", replacement = "Z")
   }
 
+  # convert booleans to integer if option is set
+  # otherwise, the default is enumerated
+  if(getOption("h2oplyr.translate_booleans") == "int") x <- x %>% dplyr::mutate_if(is.logical, as.integer)
+
   out <- h2o::as.h2o(x, ...)
 
   # convert time strings back to time
@@ -326,21 +330,51 @@ as.data.frame.H2OFrame <- function(x, ...) {
     }
   }
 
-  x <- h2o:::as.data.frame.H2OFrame(x, ...)
+  out <- h2o:::as.data.frame.H2OFrame(x, ...)
 
   time_date_cols <- union(time_cols, date_cols)
   if(length(time_date_cols) > 0) {
-    x <- x %>%
+    out <- out %>%
       # dplyr::mutate_at(date_cols, ~ as.Date(., tz = "UTC")) %>%
       # dplyr::mutate_at(time_cols, ~ as.POSIXct(., tz = "UTC"))
       dplyr::mutate_at(time_date_cols, ~ fasttime::fastPOSIXct(.))
 
     if(length(date_cols) > 0) {
-      x <- x %>% dplyr::mutate_at(date_cols, as.Date)
+      out <- out %>% dplyr::mutate_at(date_cols, as.Date)
     }
   }
 
- x
+  # apparent bug in h2o returns a character vector data frame if the data frame has only one column
+  # revert to correct schema
+  if(ncol(out) == 1 && !(schema[[1]] %in% c("time", "string"))) {
+    if(schema[[1]] == "int") out[[1]] <- as.integer(out[[1]])
+    if(schema[[1]] == "real") out[[1]] <- as.numeric(out[[1]])
+    if(schema[[1]] == "enum") out[[1]] <- factor(out[[1]], levels = h2o::h2o.levels(x, 1))
+  }
+
+  if(getOption("h2oplyr.translate_booleans") == "int") {
+    bool_cols <- names(schema)[schema == "int"]
+    if(length(bool_cols) > 0) {
+      bool_cols <- bool_cols[sapply(out[, bool_cols, drop = FALSE], function(vec) all(na.omit(vec) %in% c(0, 1)))]
+    }
+    if(length(bool_cols) > 0) {
+      out <- out %>%
+        dplyr::mutate_at(bool_cols, as.logical)
+    }
+
+  } else if(getOption("h2oplyr.translate_booleans") == "enum") {
+    bool_cols <- names(schema)[schema == "enum"]
+    if(length(bool_cols) > 0) {
+      bool_cols <- bool_cols[sapply(out[, bool_cols, drop = FALSE], function(vec) all(na.omit(tolower(vec)) %in% c("true", "false")))]
+    }
+    if(length(bool_cols) > 0) {
+      out <- out %>%
+        dplyr::mutate_at(bool_cols, as.character) %>%
+        dplyr::mutate_at(bool_cols, as.logical)
+    }
+  }
+
+  out
 }
 
 
