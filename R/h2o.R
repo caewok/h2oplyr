@@ -128,9 +128,14 @@
 
   # data.table evaluates the row filter first. e.g. mtcars.dt[cyl == 4, mean(mpg)]; mtcars.dt[cyl == 8, mean(mpg)]
   if(!missing(row)) {
+    data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
     # replace all the variable names with data[[name]] and evaluate
     rowsub_expr <- rlang::enexpr(row)
+    # replace .N with nrow applied to the first column.
+    rowsub_expr <- replace_N_alias(rowsub_expr, col = data_mask[[1]])
+
     row_value <- eval_rows(rowsub_expr, eval_env)
+    if(is.numeric(row_value)) row_value <- sort(row_value) # H2O will not re-order rows
 
     assign("data",
            value = h2o:::`[.H2OFrame`(get("data", envir = eval_env), row = row_value, drop = drop),
@@ -139,11 +144,12 @@
 
   # based on data.table `[` function
   if(!missing(col)) {
+    data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
     # colsub <- replace_dot_alias(rlang::enexpr(col))
     colsub_expr <- replace_dot_alias(rlang::enexpr(col))
 
     # replace .N with nrow applied to the first column.
-    colsub_expr <- replace_N_alias(colsub_expr, col = colnames(data)[[1]])
+    colsub_expr <- replace_N_alias(colsub_expr, col = data_mask[[1]])
 
     if(column_is_grouped) {
       eval_env <- eval_grouping(colsub_expr, eval_env, keyby_expr)
@@ -888,7 +894,7 @@ replace_N_alias <- function(sub, col) {
   if(any(N_idx)) {
     for(i in which(N_idx)) {
       sub[[i]] <- call("nrow", as.name(col))
-      if(names(sub)[[i]] == "") names(sub)[[i]] <- "N"
+      # if(is.null(names(sub[[i]])) || names(sub)[[i]] == "") names(sub)[[i]] <- "N"
     }
   }
 
@@ -992,6 +998,10 @@ replace_dot_alias = function(e) {
 # > by_cyl %>% filter(mpg < mean(mpg)) %>% summarise(hp = mean(hp))
 # Source: local data table [?? x 2]
 # Call:   `_DT1`[, .SD[mpg < mean(mpg), .(hp = mean(hp))], keyby = .(cyl)]
+
+# sampling
+# sample_frac: Call:   dth2o_1[sample(.N, .N * 0.5)]
+# sample_n: Call:   dth2o_1[sample(.N, 10)]
 
 # fn1 <- function(data, arg) {
 #   data2 <- data

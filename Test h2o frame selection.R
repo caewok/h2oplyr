@@ -54,6 +54,7 @@ mtcars.hex[, `:=`(cyl = 8, mpg = mean(mpg), am = NULL)]
 mtcars.hex[, .(a = mean(mpg))]
 mtcars.hex[, .(a = median(mpg))]
 mtcars.hex[, .(n = .N)]
+mtcars.hex[, .(.N)]
 
 # filter
 mtcars.hex[cyl == 4, ]
