@@ -24,7 +24,7 @@
 #' @importFrom dplyr `%>%`
 #' @export
 `[<-.H2OFrame` <- function(data, row, col, ..., value) {
-  message("In [<-.H2OFrame")
+  # message("In [<-.H2OFrame")
 
   # create an evaluation environment for interpreting row and column on data
   parent_env <- parent.frame()
@@ -103,7 +103,7 @@
 #' @importFrom rlang as_string ensym
 #' @export
 `[.H2OFrame` <- function(data, row, col, drop = TRUE, by, keyby) {
-  message("In [.H2OFrame")
+  # message("In [.H2OFrame")
 
   # create an evaluation environment for interpreting row and column on data
   parent_env <- parent.frame()
@@ -381,9 +381,9 @@ as.data.frame.H2OFrame <- function(x, ...) {
 #' @importFrom h2o colnames h2o.group_by
 #' @importFrom rlang eval_tidy call2
 eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
-  message(sprintf("evaluating columns: %s\n        with keyby: %s",
-                  paste(as.character(colsub_expr), collapse = " "),
-                  paste(as.character(keyby_expr), collapse = " ")))
+  # message(sprintf("evaluating columns: %s\n        with keyby: %s",
+  #                 paste(as.character(colsub_expr), collapse = " "),
+  #                 paste(as.character(keyby_expr), collapse = " ")))
   data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
 
   # according to data.table, by can be:
@@ -570,7 +570,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
 #' @importFrom h2o colnames
 #' @importFrom rlang set_names eval_tidy
 eval_columns <- function(colsub_expr, eval_env) {
-  message("evaluating columns: ", as.character(colsub_expr))
+  # message("evaluating columns: ", as.character(colsub_expr))
   data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
 
   root <- if(is.call(colsub_expr)) as.character(colsub_expr[[1L]])[1L] else ""
