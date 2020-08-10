@@ -22,8 +22,7 @@
 #' library(h2o)
 #'
 #' h2o.init()
-#' mtcars.hex <- as.h2o(mtcars, "mtcars")
-#' mtcars2 <- lazy_dt(mtcars.hex)
+#' mtcars2 <- lazy_dt(mtcars)
 #' mtcars2
 #' mtcars2 %>% select(mpg:cyl)
 #' mtcars2 %>% select(x = mpg, y = cyl)
@@ -44,10 +43,11 @@ lazy_dt <- function(x, name = NULL, immutable = TRUE) {
     }
     tbl_name <- name
     if(is.null(tbl_name)) tbl_name <- unique_name()
-    x <- Databases::SideloadTable(x, tbl_name = tbl_name, database = "h2o")
+    x <- as.h2o(x, destination_frame = tbl_name)
     copied <- TRUE
   } else {
     copied <- FALSE
+    name <- h2o::h2o.getId(x)
   }
 
   step_first(x, name = name, immutable = immutable, env = caller_env())

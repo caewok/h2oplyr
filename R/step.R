@@ -34,6 +34,7 @@ new_step <- function(parent,
   )
 }
 
+
 #' @export
 dim.h2oplyr_step <- function(x) {
   c(NA, length(x$vars))

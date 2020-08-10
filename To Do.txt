@@ -37,7 +37,7 @@ Dplyr verbs
 √ sample_frac (step-subset.R)
 √ sample_n (step-subset.R)
 √ slice (step-subset.R)
-• slice(5:n())
+√ slice(5:n())
 x slice_head
 x slice_tail
 x slice_min
