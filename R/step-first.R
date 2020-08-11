@@ -36,6 +36,7 @@
 #' by_cyl %>% summarise(mpg = mean(mpg))
 #' by_cyl %>% mutate(mpg = mean(mpg))
 #' by_cyl %>% filter(mpg < mean(mpg)) %>% summarise(hp = mean(hp))
+#' @importFrom H2OUtilities as.h2o
 lazy_dt <- function(x, name = NULL, immutable = TRUE) {
   if (!h2o::is.h2o(x)) {
     if (!immutable) {
@@ -43,7 +44,7 @@ lazy_dt <- function(x, name = NULL, immutable = TRUE) {
     }
     tbl_name <- name
     if(is.null(tbl_name)) tbl_name <- unique_name()
-    x <- as.h2o(x, destination_frame = tbl_name)
+    x <- H2OUtilities::as.h2o(x, destination_frame = tbl_name)
     copied <- TRUE
   } else {
     copied <- FALSE

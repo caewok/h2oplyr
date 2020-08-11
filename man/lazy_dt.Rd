@@ -32,8 +32,7 @@ library(dplyr, warn.conflicts = FALSE)
 library(h2o)
 
 h2o.init()
-mtcars.hex <- as.h2o(mtcars, "mtcars")
-mtcars2 <- lazy_dt(mtcars.hex)
+mtcars2 <- lazy_dt(mtcars)
 mtcars2
 mtcars2 \%>\% select(mpg:cyl)
 mtcars2 \%>\% select(x = mpg, y = cyl)

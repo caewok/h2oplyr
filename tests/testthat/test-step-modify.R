@@ -1,5 +1,5 @@
 test_that("group_modify creates modified data frame", {
-  dt <- lazy_dt(data.table(g = c(1, 1, 2), x = 1:3))
+  dt <- lazy_dt(data.frame(g = c(1, 1, 2), x = 1:3))
 
   foo <- function(rows, g) {
     list(nc = ncol(rows), nr = nrow(rows))

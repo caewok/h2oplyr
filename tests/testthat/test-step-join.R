@@ -18,22 +18,22 @@ test_that("simple usage generates expected translation", {
 
   expect_equal(
     dt1 %>% left_join(dt2, by = "x") %>% show_query(),
-    expr(merge(dt1, dt2, all.x = TRUE, all.y = FALSE, by.x = "x", by.y = "x", allow.cartesian = TRUE))
+    expr(h2o.merge(dt1, dt2, all.x = TRUE, all.y = FALSE, by.x = "x", by.y = "x"))
   )
 
   expect_equal(
     dt1 %>% right_join(dt2, by = "x") %>% show_query(),
-    expr(merge(dt2, dt1, all.x = TRUE, all.y = FALSE, by.x = "x", by.y = "x", allow.cartesian = TRUE))
+    expr(h2o.merge(dt2, dt1, all.x = TRUE, all.y = FALSE, by.x = "x", by.y = "x"))
   )
 
   expect_equal(
     dt1 %>% inner_join(dt2, by = "x") %>% show_query(),
-    expr(merge(dt1, dt2, all = FALSE, by.x = "x", by.y = "x", allow.cartesian = TRUE))
+    expr(h2o.merge(dt1, dt2, all = FALSE, by.x = "x", by.y = "x"))
   )
 
   expect_equal(
     dt1 %>% full_join(dt2, by = "x") %>% show_query(),
-    expr(merge(dt1, dt2, all = TRUE, by.x = "x", by.y = "x", allow.cartesian = TRUE))
+    expr(h2o.merge(dt1, dt2, all = TRUE, by.x = "x", by.y = "x"))
   )
 
   expect_equal(
@@ -53,7 +53,7 @@ test_that("named by converted to by.x and by.y", {
 
   expect_equal(
     dt1 %>% inner_join(dt2, by = c('a1' = 'a2')) %>% show_query(),
-    expr(merge(dt1, dt2, all = FALSE, by.x = "a1", by.y = "a2", allow.cartesian = TRUE))
+    expr(h2o.merge(dt1, dt2, all = FALSE, by.x = "a1", by.y = "a2"))
   )
 })
 
@@ -86,11 +86,10 @@ test_that("can override suffixes", {
 
   expect_equal(
     dt1 %>% left_join(dt2, by = "x", suffix = c("X", "Y")) %>% show_query(),
-    expr(merge(
+    expr(h2o.merge(
       dt1, dt2,
       all.x = TRUE, all.y = FALSE,
       by.x = "x", by.y = "x",
-      allow.cartesian = TRUE,
       suffixes = !!c("X", "Y")
     ))
   )
@@ -113,7 +112,7 @@ test_that("converts other types if requested", {
 })
 
 test_that("mutates inside joins are copied as needed", {
-  dt <- data.table(x = 1)
+  dt <- data.frame(x = 1)
   lhs <- lazy_dt(dt, "dt1") %>% mutate(y = x + 1)
   rhs <- lazy_dt(dt, "dt2") %>% mutate(z = x + 1)
 

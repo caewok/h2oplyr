@@ -1,5 +1,5 @@
 test_that("tbl metadata as expected", {
-  dt <- lazy_dt(data.table(x = c(1, 1, 1, 2, 2, 3)), "DT")
+  dt <- lazy_dt(data.frame(x = c(1, 1, 1, 2, 2, 3)), "DT")
 
   expect_equal(dim(dt), c(6, 1))
   expect_equal(as.character(tbl_vars(dt)), "x")
@@ -7,7 +7,7 @@ test_that("tbl metadata as expected", {
 })
 
 test_that("group metadata as expected", {
-  dt <- lazy_dt(data.table(x = c(1, 1, 1, 2, 2, 3)))
+  dt <- lazy_dt(data.frame(x = c(1, 1, 1, 2, 2, 3)))
   expect_equal(group_vars(dt), character())
   expect_equal(groups(dt), list())
   expect_equal(group_size(dt), 6)
@@ -29,7 +29,7 @@ test_that("can evaluate to any data frame type", {
   dt <- lazy_dt(mtcars, "DT")
 
   expect_identical(class(as.data.frame(dt)), "data.frame")
-  expect_s3_class(as.data.table(dt), "data.table")
+  # expect_s3_class(as.data.table(dt), "data.table")
   expect_s3_class(as_tibble(dt), "tbl_df")
 
   expect_s3_class(collect(dt), "tbl_df")
@@ -45,7 +45,7 @@ test_that("compute returns lazy_dt", {
 })
 
 test_that("collect and compute return grouped data", {
-  dt <- group_by(lazy_dt(data.table(x = 1, y = 1), "DT"), x)
+  dt <- group_by(lazy_dt(data.frame(x = 1, y = 1), "DT"), x)
 
   expect_equal(dt %>% compute() %>% group_vars(), "x")
   expect_equal(dt %>% collect() %>% group_vars(), "x")

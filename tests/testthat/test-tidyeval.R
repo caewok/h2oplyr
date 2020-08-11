@@ -1,49 +1,49 @@
 test_that("simple expressions left as is", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
 
-  expect_equal(capture_dot(dt, 10), 10)
-  expect_equal(capture_dot(dt, x), quote(x))
-  expect_equal(capture_dot(dt, x + y), quote(x + y))
+  expect_equal(h2oplyr:::capture_dot(dt, 10), 10)
+  expect_equal(h2oplyr:::capture_dot(dt, x), quote(x))
+  expect_equal(h2oplyr:::capture_dot(dt, x + y), quote(x + y))
 })
 
 test_that("existing non-variables get inlined", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
 
   n <- 10
-  expect_equal(capture_dot(dt, x + n), quote(x + 10))
-  expect_equal(capture_dot(dt, x + m), quote(x + m))
+  expect_equal(h2oplyr:::capture_dot(dt, x + n), quote(x + 10))
+  expect_equal(h2oplyr:::capture_dot(dt, x + m), quote(x + m))
 
   # except when not in j
-  expect_equal(capture_dot(dt, x + n, j = FALSE), quote(x + n))
+  expect_equal(h2oplyr:::capture_dot(dt, x + n, j = FALSE), quote(x + n))
 })
 
 test_that("unless we're operating in the global environment", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
-  quo <- new_quosure(quote(x + n), globalenv())
+  quo <- rlang::new_quosure(quote(x + n), globalenv())
 
-  expect_equal(capture_dot(dt, !!quo), quote(x + ..n))
+  expect_equal(h2oplyr:::capture_dot(dt, !!quo), quote(x + ..n))
 })
 
 test_that("using environment of inlined quosures", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
 
   n <- 10
-  quo <- new_quosure(quote(x + n), env(n = 20))
+  quo <- rlang::new_quosure(quote(x + n), env(n = 20))
 
-  expect_equal(capture_dot(dt, f(!!quo)), quote(f(x + 20)))
+  expect_equal(h2oplyr:::capture_dot(dt, f(!!quo)), quote(f(x + 20)))
 })
 
 test_that(". gets converted to .SD", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
 
-  expect_equal(capture_dot(dt, .), quote(.SD))
-  expect_equal(capture_dot(dt, .SD), quote(.SD))
+  expect_equal(h2oplyr:::capture_dot(dt, .), quote(.SD))
+  expect_equal(h2oplyr:::capture_dot(dt, .SD), quote(.SD))
 })
 
 test_that("can process many expressions in one go", {
   dt <- lazy_dt(data.frame(x = 1:10, y = 1:10))
   n <- 10
-  dots <- capture_dots(dt, x = x + n, y = y)
+  dots <- h2oplyr:::capture_dots(dt, x = x + n, y = y)
   expect_named(dots, c("x", "y"))
   expect_equal(dots$x, quote(x + 10))
 })
@@ -94,7 +94,7 @@ test_that("row_number(x) is equivalent to rank", {
 })
 
 test_that("scoped verbs produce nice output", {
-  dt <- lazy_dt(data.table(x = 1:5), "DT")
+  dt <- lazy_dt(data.frame(x = 1:5), "DT")
 
   expect_equal(
     dt %>% summarise_all(mean) %>% show_query(),
@@ -126,7 +126,7 @@ test_that("scoped verbs produce nice output", {
 })
 
 test_that("non-Gforce verbs work", {
-  dt <- lazy_dt(data.table(x = 1:2), "DT")
+  dt <- lazy_dt(data.frame(x = 1:2), "DT")
   add <- function(x) sum(x)
 
   expect_equal(dt %>% summarise_at(vars(x), add) %>% pull(), 3)
@@ -136,10 +136,10 @@ test_that("non-Gforce verbs work", {
 # fun_name ----------------------------------------------------------------
 
 test_that("finds name of functions with GForce implementations", {
-  expect_equal(fun_name(mean), expr(mean))
+  expect_equal(h2oplyr:::fun_name(mean), expr(mean))
 
   # unless overridden
   mean <- function() {}
-  expect_equal(fun_name(mean), NULL)
+  expect_equal(h2oplyr:::fun_name(mean), NULL)
 })
 

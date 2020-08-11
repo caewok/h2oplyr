@@ -4,7 +4,7 @@
 .onLoad <- function(...) {
   # stopifnot(requireNamespace("h2o")) # need to load first, so h2oplyr can override `[<-.H2OFrame` and `[.H2OFrame`
 
-  register_s3_method("dplyr", "filter", "data.table")
+  # register_s3_method("dplyr", "filter", "data.table")
 
   register_s3_method("dplyr", "filter", "h2oplyr_step")
   register_s3_method("dplyr", "intersect", "h2oplyr_step")

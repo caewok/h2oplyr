@@ -22,6 +22,7 @@
 #' @importFrom rlang enexpr set_names
 #' @importFrom h2o is.h2o colnames `colnames<-`
 #' @importFrom dplyr `%>%`
+#' @importFrom H2OUtilities as.h2o
 #' @export
 `[<-.H2OFrame` <- function(data, row, col, ..., value) {
   # message("In [<-.H2OFrame")
@@ -47,7 +48,7 @@
     colvars <- res$colvars
   }
 
-  if(length(value) > 1 && !h2o::is.h2o(value)) value <- as.h2o(value)
+  if(length(value) > 1 && !h2o::is.h2o(value)) value <- H2OUtilities::as.h2o(value)
 
   if(!missing(col) && !missing(row)) {
     out <- h2o:::`[<-.H2OFrame`(get("data", envir = eval_env), row = row_value, col = colvars, ..., value = value)
@@ -245,144 +246,6 @@ setnames.H2OFrame <- function(x, old, new, skip_absent = FALSE) {
   return(x)
 }
 
-#' @importFrom h2o as.h2o is.h2o
-#' @importFrom lubridate with_tz
-#' @importFrom H2OUtilities h2o.moment
-#' @export
-as.h2o <- function(x, ...) {
-  if(h2o::is.h2o(x)) return(h2o::as.h2o(x, ...))
-
-  # as.h2o does not handle POSIXct, so temporarily convert to character
-  posix_idx <- sapply(x, inherits, what = "POSIXt")
-  if(any(posix_idx)) {
-    x[, posix_idx] <- lapply(x[, posix_idx], lubridate::with_tz, tzone = "UTC")
-    x[, posix_idx] <- lapply(x[, posix_idx], format, format = "%Y-%m-%dT%H:%M:%SZ")
-
-    # h2o.as_date does not understand %OS3, so remove if present .000
-    # if milliseconds are present, this will fail
-    x[, posix_idx] <- lapply(x[, posix_idx], gsub, pattern = "[.]000Z", replacement = "Z")
-  }
-
-  # convert booleans to integer if option is set
-  # otherwise, the default is enumerated
-  if(getOption("h2oplyr.translate_booleans") == "int") x <- x %>% dplyr::mutate_if(is.logical, as.integer)
-
-  out <- h2o::as.h2o(x, ...)
-
-  # convert time strings back to time
-  if(any(posix_idx)) {
-    for(col in names(posix_idx)[posix_idx]) {
-      out[, col] <- H2OUtilities::h2o.moment(date = out[, col], format = "%Y-%m-%dT%H:%M:%SZ")
-    }
-  }
-
-  return(out)
-}
-
-#' @importFrom h2o is.h2o h2o.describe
-h2o_schema <- function(dat) {
-  stopifnot(h2o::is.h2o(dat))
-  description <- h2o::h2o.describe(dat)
-
-  # convert to named vector of types
-  if(ncol(dat) == 1) {
-    schema <- as.character(description$Type)[[1]]
-    names(schema) <- as.character(description$Label[[1]])
-  } else {
-
-    schema <- as.character(description$Type)
-    names(schema) <- as.character(description$Label)
-  }
-  schema
-}
-
-#' @importFrom h2o is.h2o h2o.hour
-#' @importFrom H2OUtilities h2o.minute h2o.second
-h2o_column_is_date <- function(dat, column_name) {
-  stopifnot(h2o::is.h2o(dat))
-  h2o::h2o.all(h2o::h2o.hour(dat[, column_name]) == 0 |
-                 is.na(h2o::h2o.hour(dat[, column_name]))) &
-    h2o::h2o.all(H2OUtilities::h2o.minute(dat[, column_name]) == 0 |
-                   is.na(H2OUtilities::h2o.minute(dat[, column_name]))) &
-    h2o::h2o.all(H2OUtilities::h2o.second(dat[,column_name]) == 0 |
-                   is.na(H2OUtilities::h2o.second(dat[,column_name])))
-}
-
-#' @importFrom h2o is.h2o
-#' @importFrom H2OUtilities h2o.format_date
-#' @importFrom fasttime fastPOSIXct
-#' @export
-as.data.frame.H2OFrame <- function(x, ...) {
-  if(!h2o::is.h2o(x)) return(h2o:::as.data.frame.H2OFrame(x, ...))
-
-  # convert time columns
-  schema <- h2o_schema(x)
-  time_cols <- names(schema)[schema == "time"]
-  date_cols <- NULL
-  if(length(time_cols) > 0) {
-    # check times for dates
-    date_cols <- sapply(time_cols, h2o_column_is_date, dat = x)
-    date_cols <- names(date_cols)[date_cols]
-    time_cols <- setdiff(time_cols, date_cols)
-
-    # correct time specifications to be strings instead of integers
-    # use data.table::fread ISO format, with dateTtimeZ
-    for(time_col in time_cols) {
-      x[, time_col] <- H2OUtilities::h2o.format_date(x[, time_col], format = "%Y-%m-%dT%H:%M:%SZ")
-    }
-
-    for(date_col in date_cols) {
-      x[, date_col] <- H2OUtilities::h2o.format_date(x[, date_col], format = "%Y-%m-%d")
-    }
-  }
-
-  out <- h2o:::as.data.frame.H2OFrame(x, ...)
-
-  time_date_cols <- union(time_cols, date_cols)
-  if(length(time_date_cols) > 0) {
-    out <- out %>%
-      # dplyr::mutate_at(date_cols, ~ as.Date(., tz = "UTC")) %>%
-      # dplyr::mutate_at(time_cols, ~ as.POSIXct(., tz = "UTC"))
-      dplyr::mutate_at(time_date_cols, ~ fasttime::fastPOSIXct(.))
-
-    if(length(date_cols) > 0) {
-      out <- out %>% dplyr::mutate_at(date_cols, as.Date)
-    }
-  }
-
-  # apparent bug in h2o returns a character vector data frame if the data frame has only one column
-  # revert to correct schema
-  if(ncol(out) == 1 && !(schema[[1]] %in% c("time", "string"))) {
-    if(schema[[1]] == "int") out[[1]] <- as.integer(out[[1]])
-    if(schema[[1]] == "real") out[[1]] <- as.numeric(out[[1]])
-    if(schema[[1]] == "enum") out[[1]] <- factor(out[[1]], levels = h2o::h2o.levels(x, 1))
-  }
-
-  if(getOption("h2oplyr.translate_booleans") == "int") {
-    bool_cols <- names(schema)[schema == "int"]
-    if(length(bool_cols) > 0) {
-      bool_cols <- bool_cols[sapply(out[, bool_cols, drop = FALSE], function(vec) all(na.omit(vec) %in% c(0, 1)))]
-    }
-    if(length(bool_cols) > 0) {
-      out <- out %>%
-        dplyr::mutate_at(bool_cols, as.logical)
-    }
-
-  } else if(getOption("h2oplyr.translate_booleans") == "enum") {
-    bool_cols <- names(schema)[schema == "enum"]
-    if(length(bool_cols) > 0) {
-      bool_cols <- bool_cols[sapply(out[, bool_cols, drop = FALSE], function(vec) all(na.omit(tolower(vec)) %in% c("true", "false")))]
-    }
-    if(length(bool_cols) > 0) {
-      out <- out %>%
-        dplyr::mutate_at(bool_cols, as.character) %>%
-        dplyr::mutate_at(bool_cols, as.logical)
-    }
-  }
-
-  out
-}
-
 
 #' @importFrom h2o colnames h2o.group_by
 #' @importFrom rlang eval_tidy call2
@@ -575,6 +438,7 @@ eval_grouping <- function(colsub_expr, eval_env, keyby_expr) {
 
 #' @importFrom h2o colnames
 #' @importFrom rlang set_names eval_tidy
+#' @importFrom H2OUtilities as.h2o
 eval_columns <- function(colsub_expr, eval_env) {
   # message("evaluating columns: ", as.character(colsub_expr))
   data_mask <- with(eval_env, h2o::colnames(data)) %>% rlang::set_names()
@@ -619,7 +483,7 @@ eval_columns <- function(colsub_expr, eval_env) {
         }
 
         # fix error when modifying multiple items
-        if(length(col_mod) > 1 && !h2o::is.h2o(col_mod)) col_mod <- as.h2o(col_mod)
+        if(length(col_mod) > 1 && !h2o::is.h2o(col_mod)) col_mod <- H2OUtilities::as.h2o(col_mod)
         assign("data",
                value = h2o:::`[<-.H2OFrame`(get("data", envir = eval_env), col = new_col_name, drop = FALSE, value = col_mod),
                envir = eval_env)

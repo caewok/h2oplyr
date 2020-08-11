@@ -2,7 +2,7 @@
 # head and tail -------------------------------------------------------------
 
 test_that("simple calls generate expected results", {
-  dt <- lazy_dt(data.table(x = 1), "DT")
+  dt <- lazy_dt(data.frame(x = 1), "DT")
 
   expect_equal(
     dt %>% head() %>% show_query(),
@@ -23,7 +23,7 @@ test_that("vars set correctly", {
 # rename ------------------------------------------------------------------
 
 test_that("simple calls generate expected translations", {
-  dt <- lazy_dt(data.table(x = 1, y = 1, z = 1), "DT")
+  dt <- lazy_dt(data.frame(x = 1, y = 1, z = 1), "DT")
 
   expect_equal(
     dt %>% rename(b = y) %>% show_query(),
@@ -37,14 +37,14 @@ test_that("vars set correctly", {
 })
 
 test_that("empty rename returns original", {
-  dt <- data.table(x = 1, y = 1, z = 1)
+  dt <- data.frame(x = 1, y = 1, z = 1)
   lz <- lazy_dt(dt, "DT")
 
   expect_equal(lz %>% rename() %>% show_query(), expr(DT))
 })
 
 test_that("renames grouping vars", {
-  dt <- lazy_dt(data.table(x = 1, y = 1, z = 1))
+  dt <- lazy_dt(data.frame(x = 1, y = 1, z = 1))
   gt <- group_by(dt, x)
   expect_equal(rename(gt, y = x)$groups, "y")
 })
@@ -52,79 +52,79 @@ test_that("renames grouping vars", {
 # distinct ----------------------------------------------------------------
 
 test_that("no input uses all variables", {
-  dt <- lazy_dt(data.table(x = c(1, 1), y = c(1, 2)), "dt")
+  dt <- lazy_dt(data.frame(x = c(1, 1), y = c(1, 2)), "dt")
 
   expect_equal(
     dt %>% distinct() %>% show_query(),
-    expr(unique(dt))
+    expr(h2o.drop_duplicates(dt))
   )
 
   expect_equal(dt %>% distinct() %>% .$vars, c("x", "y"))
 })
 
 test_that("uses supplied variables", {
-  dt <- lazy_dt(data.table(x = c(1, 1), y = c(1, 2)), "dt")
+  dt <- lazy_dt(data.frame(x = c(1, 1), y = c(1, 2)), "dt")
 
   expect_equal(
     dt %>% distinct(y) %>% show_query(),
-    expr(unique(dt[, .(y)]))
+    expr(h2o.drop_duplicates(dt[, .(y)], columns = "y"))
   )
   expect_equal(dt %>% distinct(y) %>% .$vars, "y")
 
   expect_equal(
     dt %>% group_by(x) %>% distinct(y) %>% show_query(),
-    expr(unique(dt[, .(x, y)]))
+    expr(h2o.drop_duplicates(dt[, .(x, y)], columns = "y"))
   )
 })
 
 test_that("doesn't duplicate variables", {
-  dt <- lazy_dt(data.table(x = c(1, 1), y = c(1, 2)), "dt")
+  dt <- lazy_dt(data.frame(x = c(1, 1), y = c(1, 2)), "dt")
 
   expect_equal(
     dt %>% distinct(x, x) %>% show_query(),
-    expr(unique(dt[, .(x)]))
+    expr(h2o.drop_duplicates(dt[, .(x)], columns = "x"))
   )
 
   expect_equal(dt %>% distinct(x, x) %>% .$vars, "x")
 
   expect_equal(
     dt %>% group_by(x) %>% distinct(x) %>% show_query(),
-    expr(unique(dt[, .(x)]))
+    expr(h2o.drop_duplicates(dt[, .(x)], columns = "x"))
   )
 })
 test_that("keeps all variables if requested", {
-  dt <- lazy_dt(data.table(x = 1, y = 1, z = 1), "dt")
+  dt <- lazy_dt(data.frame(x = 1, y = 1, z = 1), "dt")
 
   expect_equal(
     dt %>% distinct(y, .keep_all = TRUE) %>% show_query(),
-    expr(unique(dt, by = "y"))
+    expr(h2o.drop_duplicates(dt, columns = "y"))
   )
   expect_equal(dt %>% distinct(y, .keep_all = TRUE) %>% .$vars, c("x", "y", "z"))
 
   expect_equal(
     dt %>% group_by(x) %>% distinct(y, .keep_all = TRUE) %>% show_query(),
-    expr(unique(dt, by = c("x", "y")))
+    expr(h2o.drop_duplicates(dt, columns = c("x", "y")))
   )
 })
 
 test_that("can compute distinct computed variables", {
-  dt <- lazy_dt(data.table(x = c(1, 1), y = c(1, 2)), "dt")
+  dt <- lazy_dt(data.frame(x = c(1, 1), y = c(1, 2)), "dt")
 
   expect_equal(
     dt %>% distinct(z = x + y) %>% show_query(),
-    expr(unique(dt[, .(z = x + y)]))
+    expr(h2o.drop_duplicates(dt[, .(z = x + y)], columns = "z"))
   )
 
   expect_equal(
     dt %>% distinct(z = x + y, .keep_all = TRUE) %>% show_query(),
-    expr(unique(copy(dt)[, `:=`(z = x + y)], by = "z"))
+    expr(h2o.drop_duplicates(copy(dt)[, `:=`(z = x + y)], columns = "z"))
   )
 })
 
 
 # unique ------------------------------------------------------------------
-
-test_that("unique is an alias for distinct", {
-  dt <- lazy_dt(data.table(x = c(1, 1)))
-  expect_equal(unique(dt), distinct(dt))
-})
+# probably don't want unique as an alias for distinct. h2o.unique is a separate function, and unique is not a dplyr function.
+# test_that("unique is an alias for distinct", {
+#   dt <- lazy_dt(data.frame(x = c(1, 1)))
+#   expect_equal(unique(dt, x), distinct(dt, x))
+# })

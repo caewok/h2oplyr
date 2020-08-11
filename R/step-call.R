@@ -62,40 +62,47 @@ rename.h2oplyr_step <- function(.data, ...) {
 #' @export
 distinct.h2oplyr_step <- function(.data, ..., .keep_all = FALSE) {
   dots <- capture_dots(.data, ...)
+  # message("Dot names: ", names(dots))
 
   if (length(dots) > 0) {
     only_syms <- all(vapply(dots, is_symbol, logical(1)))
 
     if (.keep_all) {
       if (only_syms) {
-        by <- union(.data$groups, names(dots))
+        # message("only syms, keep all")
+        columns <- union(.data$groups, names(dots))
       } else {
+        # message("keep all")
         .data <- mutate(.data, !!!dots)
-        by <- names(.data$new_vars)
+        columns <- unique(names(dots))
       }
     } else {
       if (only_syms) {
+        # message('only syms')
         .data <- select(.data, !!!dots)
+        columns <- unique(names(dots))
       } else {
+        # message("none")
         .data <- transmute(.data, !!!dots)
+        columns <- unique(names(dots))
       }
-      by <- NULL
     }
   } else {
-    by <- NULL
+    # message("no dots")
+    columns <- NULL
   }
 
   args <- list()
-  args$by <- by
+  args$columns <- columns
 
-  step_call(.data, "h2o.unique", args = args)
+  step_call(.data, "h2o.drop_duplicates", args = args)
 }
 
 
-#' @export
-unique.h2oplyr_step <- function(x, incomparables = FALSE, ...) {
-  if (!missing(incomparables)) {
-    abort("`incomparables` not supported by `unique.h2oplyr_step()`")
-  }
-  distinct(x)
-}
+# #' @export
+# unique.h2oplyr_step <- function(x, incomparables = FALSE, ...) {
+#   if (!missing(incomparables)) {
+#     abort("`incomparables` not supported by `unique.h2oplyr_step()`")
+#   }
+#   distinct(x)
+# }

@@ -1,6 +1,6 @@
 test_that("constructor has sensible defaults", {
-  first <- step_first(data.table(x = 1), "DT")
-  step <- step_mutate(first)
+  first <- h2oplyr:::step_first(as.h2o(data.frame(x = 1)), "DT")
+  step <- h2oplyr:::step_mutate(first)
 
   expect_s3_class(step, "h2oplyr_step_mutate")
   expect_equal(step$parent, first)
@@ -12,7 +12,7 @@ test_that("constructor has sensible defaults", {
 # copies ------------------------------------------------------------------
 
 test_that("need to copy when there's a mutate", {
-  dt <- lazy_dt(data.table(x = 1))
+  dt <- lazy_dt(data.frame(x = 1))
 
   expect_false(dt %>% .$needs_copy)
   expect_false(dt %>% filter(x == 1) %>% .$needs_copy)
@@ -24,7 +24,7 @@ test_that("need to copy when there's a mutate", {
 })
 
 test_that("unless there's already an implicit copy", {
-  dt <- lazy_dt(data.table(x = 1))
+  dt <- lazy_dt(as.h2o(data.frame(x = 1)))
 
   expect_true(dt %>% filter(x == 1) %>% .$implicit_copy)
   expect_false(dt %>% filter(x == 1) %>% mutate(y = 1) %>% .$needs_copy)
@@ -36,7 +36,7 @@ test_that("unless there's already an implicit copy", {
 # dplyr verbs -------------------------------------------------------------
 
 test_that("generates single calls as expect", {
-  dt <- lazy_dt(data.table(x = 1), "DT")
+  dt <- lazy_dt(data.frame(x = 1), "DT")
 
   expect_equal(
     dt %>% mutate(x2 = x * 2) %>% show_query(),
@@ -55,7 +55,7 @@ test_that("generates single calls as expect", {
 })
 
 test_that("mutate generates compound expression if needed", {
-  dt <- lazy_dt(data.table(x = 1, y = 2), "DT")
+  dt <- lazy_dt(data.frame(x = 1, y = 2), "DT")
 
   expect_equal(
     dt %>% mutate(x2 = x * 2, x4 = x2 * 2) %>% show_query(),

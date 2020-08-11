@@ -1,5 +1,5 @@
 test_that("constructor has sensible defaults", {
-  dt <- data.table(x = 1:2, y = 1:2)
+  dt <- data.frame(x = 1:2, y = 1:2)
   step <- step_first(dt)
 
   expect_s3_class(step, "h2oplyr_step_first")
@@ -18,11 +18,11 @@ test_that("doesn't need copy", {
 })
 
 test_that("mutable object must be a data table", {
-  expect_error(lazy_dt(mtcars, immutable = FALSE), "not already a data table")
+  expect_error(lazy_dt(mtcars, immutable = FALSE), "not already an H2OFrame")
 })
 
 test_that("mutable object never needs copy", {
-  dt <- lazy_dt(as.data.table(mtcars), immutable = FALSE)
+  dt <- lazy_dt(as.h2o(mtcars), immutable = FALSE)
   expect_false(dt$needs_copy)
   expect_false(dt %>% mutate(x = 1) %>% .$needs_copy)
 })
@@ -35,23 +35,24 @@ test_that("dt_call() copies if requested", {
 })
 
 test_that("lazy_dt doesn't copy input", {
-  dt <- data.table(x = 1)
+  dt <- as.h2o(x = 1)
   lz <- lazy_dt(dt)
 
-  expect_equal(address(dt), address(lz$parent))
+  expect_equal(data.table::address(dt), data.table::address(lz$parent))
 })
 
 # keys --------------------------------------------------------------------
 
-test_that("can set keys", {
-  dt <- lazy_dt(mtcars, key_by = cyl)
-  expect_equal(key(dt$parent), "cyl")
-})
-
-test_that("setting doesn't modify data.table", {
-  dt1 <- data.table(x = c(5, 1, 2))
-  dt2 <- lazy_dt(dt1, key_by = x)
-
-  expect_equal(key(dt1$parent), NULL)
-  expect_equal(key(dt2$parent), "x")
-})
+# not used by h2o
+# test_that("can set keys", {
+#   dt <- lazy_dt(mtcars, key_by = cyl)
+#   expect_equal(key(dt$parent), "cyl")
+# })
+#
+# test_that("setting doesn't modify data.table", {
+#   dt1 <- data.frame(x = c(5, 1, 2))
+#   dt2 <- lazy_dt(dt1, key_by = x)
+#
+#   expect_equal(key(dt1$parent), NULL)
+#   expect_equal(key(dt2$parent), "x")
+# })

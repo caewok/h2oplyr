@@ -113,9 +113,9 @@ compute.h2oplyr_step <- function(x, name = unique_name(), ...) {
 
 #' @rdname collect
 #' @export
-#' @param keep.rownames Ignored as dplyr never preseres rownames.
+#' @param keep.rownames Ignored as dplyr never preserves rownames.
 as.data.table.h2oplyr_step <- function(x, keep.rownames = FALSE, ...) {
-  dt_eval(x)
+  as.data.table(as.data.frame(x))
 }
 
 #' @rdname collect
